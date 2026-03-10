@@ -1,34 +1,14 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 export default function AuthLogo() {
   return (
-    <View style={styles.logoContainer}>
-      <Text style={styles.logoText}>
-        huza<Text style={styles.logoTextOrange}>Go</Text>
+    <View className="items-center mt-5 mb-10">
+      <Text className="text-5xl font-bold text-[#1363A5] -tracking-wider">
+        huza<Text className="text-[#F48C06]">Go</Text>
       </Text>
-      <Text style={styles.logoSubtext}>Fast & Affordable Local Delivery</Text>
+      <Text className="text-[8px] text-[#1363A5] -mt-1">
+        Fast & Affordable Local Delivery
+      </Text>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  logoContainer: {
-    alignItems: "center",
-    marginTop: 20,
-    marginBottom: 40,
-  },
-  logoText: {
-    fontSize: 48,
-    fontWeight: "bold",
-    color: "#1363A5",
-    letterSpacing: -1,
-  },
-  logoTextOrange: {
-    color: "#F48C06",
-  },
-  logoSubtext: {
-    fontSize: 8,
-    color: "#1363A5",
-    marginTop: -5,
-  },
-});

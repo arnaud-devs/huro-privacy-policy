@@ -1,12 +1,11 @@
-import { useRouter, Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  KeyboardAvoidingView,
+  Platform,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -20,19 +19,21 @@ export default function SignUpScreen() {
   const router = useRouter();
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView className="flex-1 bg-white">
       <Stack.Screen options={{ headerShown: false }} />
       <KeyboardAvoidingView
-        style={styles.container}
+        className="flex-1 bg-white"
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <AuthHeader title="Sign Up" />
 
-        <View style={styles.content}>
+        <View className="flex-1 px-6 pt-2.5">
           <AuthLogo />
 
-          <Text style={styles.title}>Create Account</Text>
-          <Text style={styles.subtitle}>
+          <Text className="text-[28px] font-bold text-slate-900 mb-3">
+            Create Account
+          </Text>
+          <Text className="text-[15px] text-slate-600 leading-[22px] mb-8">
             Welcome! Please enter your email address to get started with your
             campus community.
           </Text>
@@ -53,15 +54,17 @@ export default function SignUpScreen() {
             onPress={() => {
               router.push({
                 pathname: "/verify-email",
-                params: { email: email }
+                params: { email: email },
               });
             }}
           />
 
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Already have an account? </Text>
+          <View className="flex-row justify-center items-center mt-auto mb-5">
+            <Text className="text-[15px] text-slate-500">
+              Already have an account?{" "}
+            </Text>
             <TouchableOpacity onPress={() => router.push("/login")}>
-              <Text style={styles.loginText}>Log In</Text>
+              <Text className="text-[15px] font-semibold text-primary">Log In</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -69,48 +72,3 @@ export default function SignUpScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-  },
-  container: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 10,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#0F172A",
-    marginBottom: 12,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: "#475569",
-    lineHeight: 22,
-    marginBottom: 32,
-  },
-  footer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: "auto",
-    marginBottom: 20,
-  },
-  footerText: {
-    fontSize: 15,
-    color: "#64748B",
-  },
-  loginText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#1C74E9",
-  },
-});
-

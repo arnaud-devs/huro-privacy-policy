@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import ActiveOrders from "@/components/home/ActiveOrders";
@@ -10,9 +10,9 @@ import SearchBar from "@/components/home/SearchBar";
 
 export default function HomeScreen() {
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={{ padding: 16 }}
         showsVerticalScrollIndicator={false}
       >
         <HomeHeader />
@@ -21,20 +21,8 @@ export default function HomeScreen() {
         <QuickLinks />
         <CampusDeals />
         <ActiveOrders />
-
-        {/* Space for bottom tab bar padding */}
-        <View style={{ height: 20 }} />
+        <View className="h-5" />
       </ScrollView>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#F8F9FA",
-  },
-  scrollContent: {
-    padding: 16,
-  },
-});

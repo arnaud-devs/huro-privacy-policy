@@ -1,15 +1,10 @@
-import { View, Text, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Text } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function MoreScreen() {
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>More</Text>
+    <SafeAreaView className="flex-1 justify-center items-center bg-white">
+      <Text className="text-2xl font-bold text-gray-800">More</Text>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  title: { fontSize: 24, fontWeight: 'bold' }
-});
