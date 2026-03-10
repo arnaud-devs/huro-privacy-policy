@@ -1,5 +1,10 @@
 import "@/global.css";
 
+import { cssInterop } from "nativewind";
+import { Image } from "expo-image";
+
+cssInterop(Image, { className: "style" });
+
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
