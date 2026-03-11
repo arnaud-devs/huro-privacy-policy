@@ -1,7 +1,9 @@
 import { Image } from "expo-image";
+import { useRouter } from "expo-router";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 export default function CampusDeals() {
+  const router = useRouter();
   return (
     <>
       <View className="flex-row items-center justify-between mb-4">
@@ -17,7 +19,9 @@ export default function CampusDeals() {
         contentContainerStyle={{ gap: 16, paddingRight: 16 }}
         className="mb-8"
       >
-        <TouchableOpacity className="w-[200px] bg-white rounded-2xl overflow-hidden border border-slate-200">
+        <TouchableOpacity
+          onPress={() => router.push({ pathname: '/campus-product-details', params: { id: 'deal-1' } })}
+          className="w-[200px] bg-white rounded-2xl overflow-hidden border border-slate-200">
           <Image
             source={{
               uri: "https://images.unsplash.com/photo-1565299507177-b0ac66763828?auto=format&fit=crop&w=400&q=80",
@@ -35,7 +39,9 @@ export default function CampusDeals() {
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity className="w-[200px] bg-white rounded-2xl overflow-hidden border border-slate-200">
+        <TouchableOpacity
+          onPress={() => router.push({ pathname: '/campus-product-details', params: { id: 'deal-2' } })}
+          className="w-[200px] bg-white rounded-2xl overflow-hidden border border-slate-200">
           <Image
             source={{
               uri: "https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?auto=format&fit=crop&w=400&q=80",
