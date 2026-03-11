@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 
 import ActiveOrderCard from "@/components/orders/ActiveOrderCard";
 import RecentlyDelivered from "@/components/orders/RecentlyDelivered";
@@ -58,6 +59,7 @@ const RECENT_ORDERS = [
 
 export default function OrdersScreen() {
   const [activeTab, setActiveTab] = useState<Tab>("Active");
+  const router = useRouter();
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
@@ -96,7 +98,15 @@ export default function OrdersScreen() {
             </Text>
 
             {ACTIVE_ORDERS.map((order) => (
-              <ActiveOrderCard key={order.id} {...order} />
+              <ActiveOrderCard
+                key={order.id}
+                {...order}
+                onPrimaryAction={
+                  order.primaryAction.label === "Track Order"
+                    ? () => router.push({ pathname: "/order-status", params: { orderId: order.id } })
+                    : undefined
+                }
+              />
             ))}
 
             <RecentlyDelivered items={RECENT_ORDERS} />
