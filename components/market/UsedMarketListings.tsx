@@ -1,6 +1,7 @@
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 const LISTINGS = [
   {
@@ -27,6 +28,8 @@ const LISTINGS = [
 ];
 
 export default function UsedMarketListings() {
+  const router = useRouter();
+
   return (
     <View className="px-4 mt-4 mb-20">
       <Text className="text-xl font-bold text-slate-900 mb-4">Student Listings</Text>
@@ -53,7 +56,10 @@ export default function UsedMarketListings() {
             </View>
             
             <View className="flex-row justify-between gap-3">
-              <TouchableOpacity className="flex-1 bg-primary rounded-xl py-3 justify-center items-center">
+              <TouchableOpacity
+                className="flex-1 bg-primary rounded-xl py-3 justify-center items-center"
+                onPress={() => router.push({ pathname: '/product-details', params: { id: item.id } })}
+              >
                 <Text className="text-white font-semibold text-sm">View Details</Text>
               </TouchableOpacity>
               <TouchableOpacity className="w-12 h-12 border border-slate-200 rounded-xl justify-center items-center">
