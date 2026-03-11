@@ -136,7 +136,7 @@ export default function SellItemPaymentScreen() {
           style={styles.ctaButton}
           onPress={() => {
             /* handle payment & post */
-            router.dismissAll();
+            router.replace("/sell-item-success");
           }}
         >
           <Text style={styles.ctaText}>Pay &amp; Post Listing</Text>

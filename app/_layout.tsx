@@ -21,6 +21,7 @@ export default function RootLayout() {
         <Stack.Screen name="sell-item" options={{ headerShown: false }} />
         <Stack.Screen name="sell-item-details" options={{ headerShown: false }} />
         <Stack.Screen name="sell-item-payment" options={{ headerShown: false }} />
+        <Stack.Screen name="sell-item-success" options={{ headerShown: false }} />
         <Stack.Screen
           name="modal"
           options={{ presentation: "modal", title: "Modal" }}

@@ -45,7 +45,7 @@ export default function SellItemDetailsScreen() {
           onPress={() => router.back()}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="close" size={24} color="#1e293b" />
+          <Ionicons name="arrow-back" size={24} color="#1e293b" />
         </TouchableOpacity>
         <Text className="flex-1 text-center text-lg font-bold text-slate-800">
           Sell Item
