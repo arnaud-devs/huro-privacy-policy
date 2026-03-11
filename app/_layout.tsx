@@ -18,6 +18,8 @@ export default function RootLayout() {
         <Stack.Screen name="chat" options={{ headerShown: false }} />
         <Stack.Screen name="order-status" options={{ headerShown: false }} />
         <Stack.Screen name="order-details" options={{ headerShown: false }} />
+        <Stack.Screen name="sell-item" options={{ headerShown: false }} />
+        <Stack.Screen name="sell-item-details" options={{ headerShown: false }} />
         <Stack.Screen
           name="modal"
           options={{ presentation: "modal", title: "Modal" }}

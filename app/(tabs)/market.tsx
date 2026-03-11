@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -12,6 +13,7 @@ import UsedMarketCategories from "@/components/market/UsedMarketCategories";
 import UsedMarketListings from "@/components/market/UsedMarketListings";
 
 export default function MarketScreen() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"Campus Store" | "Used Market">(
     "Campus Store",
   );
@@ -40,6 +42,7 @@ export default function MarketScreen() {
 
       {activeTab === "Used Market" && (
         <TouchableOpacity
+          onPress={() => router.push("/sell-item")}
           className="absolute bottom-6 right-6 bg-primary flex-row items-center px-4 py-3 rounded-full shadow-lg border border-blue-400"
           style={{
             shadowColor: "#1C74E9",
