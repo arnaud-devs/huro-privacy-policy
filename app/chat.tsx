@@ -1,6 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ScrollView, Text, TouchableOpacity, View, KeyboardAvoidingView, Platform } from "react-native";
+import {
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import ChatBubble, { Message } from "@/components/chat/ChatBubble";
@@ -134,7 +141,9 @@ export default function ChatScreen() {
           <Text className="text-lg font-bold text-slate-900">
             {conversation.sellerName} (Verified Student)
           </Text>
-          <Text className="text-xs font-bold" style={{ color: "#22c55e" }}>ONLINE</Text>
+          <Text className="text-xs font-bold" style={{ color: "#22c55e" }}>
+            ONLINE
+          </Text>
         </View>
 
         <TouchableOpacity>
