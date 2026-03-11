@@ -7,7 +7,7 @@ export default function CampusDeals() {
       <View className="flex-row items-center justify-between mb-4">
         <Text className="text-lg font-bold text-slate-900">Campus Deals</Text>
         <View className="bg-blue-100 px-2 py-1 rounded">
-          <Text className="text-primary text-[10px] font-bold">LIMITED TIME</Text>
+          <Text className="text-primary text-xxs font-bold">LIMITED TIME</Text>
         </View>
       </View>
 
@@ -29,7 +29,7 @@ export default function CampusDeals() {
               Chapati + Soda Combo
             </Text>
             <View className="flex-row items-center gap-2">
-              <Text className="text-[15px] font-bold text-primary">1,500 RWF</Text>
+              <Text className="text-base font-bold text-primary">1,500 RWF</Text>
               <Text className="text-xs text-slate-400 line-through">2,200 RWF</Text>
             </View>
           </View>
@@ -46,7 +46,7 @@ export default function CampusDeals() {
             <Text className="text-sm font-bold text-slate-900 mb-2" numberOfLines={1}>
               Late Night Snacks
             </Text>
-            <Text className="text-[15px] font-bold text-primary">3,000 RWF</Text>
+            <Text className="text-base font-bold text-primary">3,000 RWF</Text>
           </View>
         </TouchableOpacity>
       </ScrollView>

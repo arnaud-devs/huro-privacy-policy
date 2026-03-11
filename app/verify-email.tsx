@@ -73,10 +73,10 @@ export default function VerifyEmailScreen() {
           <View className="h-px bg-slate-100" />
 
           <View className="flex-1 px-6 pt-8">
-            <Text className="text-[28px] font-bold text-slate-900 mb-3">
+            <Text className="text-3xl font-bold text-slate-900 mb-3">
               Verify your email
             </Text>
-            <Text className="text-[15px] text-slate-600 leading-6 mb-8">
+            <Text className="text-base text-slate-600 leading-6 mb-8">
               We've sent a 4-digit verification code to{"\n"}
               <Text className="font-semibold text-primary">{displayEmail}</Text>
             </Text>
@@ -106,13 +106,13 @@ export default function VerifyEmailScreen() {
                 <View className="bg-blue-50 rounded-2xl w-full h-12 justify-center items-center mb-2">
                   <Text className="text-lg font-bold text-primary">00</Text>
                 </View>
-                <Text className="text-[11px] font-semibold text-slate-500 tracking-wide">MINUTES</Text>
+                <Text className="text-xs font-semibold text-slate-500 tracking-wide">MINUTES</Text>
               </View>
               <View className="items-center flex-1">
                 <View className="bg-blue-50 rounded-2xl w-full h-12 justify-center items-center mb-2">
                   <Text className="text-lg font-bold text-primary">54</Text>
                 </View>
-                <Text className="text-[11px] font-semibold text-slate-500 tracking-wide">SECONDS</Text>
+                <Text className="text-xs font-semibold text-slate-500 tracking-wide">SECONDS</Text>
               </View>
             </View>
 

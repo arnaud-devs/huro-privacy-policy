@@ -17,11 +17,11 @@ export default function ActiveOrders() {
 
         <View className="flex-1">
           <View className="flex-row items-center mb-2">
-            <Text className="text-[15px] font-bold text-slate-900 mr-2">
+            <Text className="text-base font-bold text-slate-900 mr-2">
               Batch #124
             </Text>
             <View className="bg-green-100 px-2 py-1 rounded-md">
-              <Text className="text-green-600 text-[10px] font-bold">
+              <Text className="text-green-600 text-xxs font-bold">
                 On the way
               </Text>
             </View>
@@ -29,14 +29,14 @@ export default function ActiveOrders() {
 
           <View className="flex-row items-center mb-1">
             <Ionicons name="location-outline" size={14} color="#1C74E9" />
-            <Text className="text-[13px] font-semibold text-slate-900 ml-1.5">
+            <Text className="text-sm font-semibold text-slate-900 ml-1.5">
               Pickup: Main Gate
             </Text>
           </View>
 
           <View className="flex-row items-center">
             <Ionicons name="time-outline" size={14} color="#64748B" />
-            <Text className="text-[13px] text-slate-500 ml-1.5">
+            <Text className="text-sm text-slate-500 ml-1.5">
               Arrives: 12:00 PM
             </Text>
           </View>

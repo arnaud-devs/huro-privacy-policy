@@ -30,10 +30,10 @@ export default function SignUpScreen() {
         <View className="flex-1 px-6 pt-2.5">
           <AuthLogo />
 
-          <Text className="text-[28px] font-bold text-slate-900 mb-3">
+          <Text className="text-3xl font-bold text-slate-900 mb-3">
             Create Account
           </Text>
-          <Text className="text-[15px] text-slate-600 leading-[22px] mb-8">
+          <Text className="text-base text-slate-600 leading-[22px] mb-8">
             Welcome! Please enter your email address to get started with your
             campus community.
           </Text>
@@ -60,11 +60,11 @@ export default function SignUpScreen() {
           />
 
           <View className="flex-row justify-center items-center mt-auto mb-5">
-            <Text className="text-[15px] text-slate-500">
+            <Text className="text-base text-slate-500">
               Already have an account?{" "}
             </Text>
             <TouchableOpacity onPress={() => router.push("/login")}>
-              <Text className="text-[15px] font-semibold text-primary">Log In</Text>
+              <Text className="text-base font-semibold text-primary">Log In</Text>
             </TouchableOpacity>
           </View>
         </View>

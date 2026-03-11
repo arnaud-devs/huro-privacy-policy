@@ -30,7 +30,7 @@ export default function AccountCreatedScreen() {
               </View>
             </View>
 
-            <Text className="text-[28px] font-bold text-slate-900 mb-4">Account Created!</Text>
+            <Text className="text-3xl font-bold text-slate-900 mb-4">Account Created!</Text>
             <Text className="text-base text-slate-600 text-center leading-6 mb-10">
               Welcome to <Text className="text-primary">One Campus</Text>, Alex!
               {"\n"}Your journey to a smarter campus{"\n"}life starts now.
@@ -42,8 +42,8 @@ export default function AccountCreatedScreen() {
                 <Ionicons name="person" size={24} color="#64748B" style={{ marginTop: 4 }} />
               </View>
               <View className="flex-1">
-                <Text className="text-[15px] font-bold text-slate-900 mb-1">Alex Thompson</Text>
-                <Text className="text-[13px] text-slate-500">Student ID: #88294</Text>
+                <Text className="text-base font-bold text-slate-900 mb-1">Alex Thompson</Text>
+                <Text className="text-sm text-slate-500">Student ID: #88294</Text>
               </View>
               <View className="bg-green-100 px-3 py-1.5 rounded-xl">
                 <Text className="text-green-800 text-xs font-semibold">Active</Text>

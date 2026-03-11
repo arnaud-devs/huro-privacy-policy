@@ -45,7 +45,7 @@ export default function ProductGrid() {
   return (
     <View className="px-4 mt-2 mb-6">
       <View className="flex-row items-center justify-between mb-4">
-        <Text className="text-[17px] font-bold text-slate-900">Nearby Shops</Text>
+        <Text className="text-lg font-bold text-slate-900">Nearby Shops</Text>
         <TouchableOpacity>
           <Text className="text-primary font-bold text-sm">See all</Text>
         </TouchableOpacity>
@@ -66,8 +66,8 @@ export default function ProductGrid() {
             </View>
             
             <View className="mt-3 mb-2 px-1">
-              <Text className="text-[13px] font-bold text-slate-900" numberOfLines={1}>{product.name}</Text>
-              <Text className="text-primary font-extrabold text-[15px] mt-1">{product.price}</Text>
+              <Text className="text-sm font-bold text-slate-900" numberOfLines={1}>{product.name}</Text>
+              <Text className="text-primary font-extrabold text-base mt-1">{product.price}</Text>
             </View>
 
             <TouchableOpacity className="bg-primary flex-row items-center justify-center py-2.5 rounded-xl mt-auto">

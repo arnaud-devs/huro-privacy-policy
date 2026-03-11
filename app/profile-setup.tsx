@@ -32,7 +32,7 @@ export default function ProfileSetupScreen() {
         </View>
 
         <View className="flex-1 px-6 pt-6">
-          <Text className="text-[28px] font-bold text-slate-900 mb-2">
+          <Text className="text-3xl font-bold text-slate-900 mb-2">
             Tell us about yourself
           </Text>
           <Text className="text-base text-slate-500 mb-8">
@@ -69,7 +69,7 @@ export default function ProfileSetupScreen() {
 
           {/* Terms Text */}
           <View className="mt-4 items-center">
-            <Text className="text-[13px] text-slate-500 text-center leading-5">
+            <Text className="text-sm text-slate-500 text-center leading-5">
               By clicking "Complete Sign Up", you agree to our{"\n"}
               <Text className="text-primary">Terms of Service</Text> and{" "}
               <Text className="text-primary">Privacy Policy</Text>.
@@ -88,7 +88,7 @@ export default function ProfileSetupScreen() {
 
           {/* Skip Link */}
           <TouchableOpacity className="items-center py-3 mb-5">
-            <Text className="text-[15px] text-slate-500 font-medium">Skip for now</Text>
+            <Text className="text-base text-slate-500 font-medium">Skip for now</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>

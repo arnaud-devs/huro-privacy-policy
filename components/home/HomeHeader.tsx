@@ -14,7 +14,7 @@ export default function HomeHeader() {
           />
         </View>
         <View>
-          <Text className="text-[13px] text-slate-500">Welcome back,</Text>
+          <Text className="text-sm text-slate-500">Welcome back,</Text>
           <Text className="text-base font-bold text-primary">Alex Chen</Text>
         </View>
       </View>
