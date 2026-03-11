@@ -1,10 +1,131 @@
-import { Text } from "react-native";
+import { useState } from "react";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import ActiveOrderCard from "@/components/orders/ActiveOrderCard";
+import RecentlyDelivered from "@/components/orders/RecentlyDelivered";
+
+type Tab = "Active" | "Delivered" | "Cancelled";
+const TABS: Tab[] = ["Active", "Delivered", "Cancelled"];
+
+const ACTIVE_ORDERS = [
+  {
+    id: "1",
+    title: "Snack Pack",
+    store: "Campus Store",
+    orderId: "#44291",
+    eta: "12 mins",
+    stage: "Kitchen stage",
+    image:
+      "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80",
+    badge: { label: "Collecting", color: "orange" as const },
+    primaryAction: { label: "Track Order", icon: "location-outline" },
+  },
+  {
+    id: "2",
+    title: "Iced Americano x2",
+    store: "Coffee Beanery",
+    orderId: "#44288",
+    eta: "4 mins",
+    stage: "Near Main Gate",
+    image:
+      "https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=800&q=80",
+    badge: { label: "Arrived", color: "blue" as const },
+    primaryAction: { label: "Call Rider", icon: "bicycle-outline" },
+  },
+];
+
+const RECENT_ORDERS = [
+  {
+    id: "1",
+    title: "Healthy Garden S...",
+    date: "Delivered Oct 24",
+    amount: "$12.50",
+    image:
+      "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=200&q=80",
+    action: "rate" as const,
+  },
+  {
+    id: "2",
+    title: "Double Cheese Combo",
+    date: "Delivered Oct 22",
+    amount: "$15.00",
+    image:
+      "https://images.unsplash.com/photo-1586816001966-79b736744398?auto=format&fit=crop&w=200&q=80",
+    action: "reorder" as const,
+  },
+];
+
 export default function OrdersScreen() {
+  const [activeTab, setActiveTab] = useState<Tab>("Active");
+
   return (
-    <SafeAreaView className="flex-1 justify-center items-center bg-white">
-      <Text className="text-2xl font-bold text-gray-800">Orders</Text>
+    <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
+      {/* Header */}
+      <View className="bg-white px-4 pt-2 pb-0 border-b border-slate-100">
+        <Text className="text-xl font-bold text-slate-900 text-center mb-4">Orders</Text>
+
+        {/* Tabs */}
+        <View className="flex-row">
+          {TABS.map((tab) => {
+            const isActive = tab === activeTab;
+            return (
+              <TouchableOpacity
+                key={tab}
+                onPress={() => setActiveTab(tab)}
+                className="flex-1 items-center pb-3"
+                style={isActive ? styles.activeTabBorder : undefined}
+              >
+                <Text
+                  className="text-sm font-semibold"
+                  style={isActive ? styles.activeTabText : styles.inactiveTabText}
+                >
+                  {tab}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+
+      <ScrollView className="flex-1 px-4 pt-4" showsVerticalScrollIndicator={false}>
+        {activeTab === "Active" && (
+          <>
+            <Text className="text-lg font-bold text-slate-900 mb-4">
+              Ongoing Deliveries
+            </Text>
+
+            {ACTIVE_ORDERS.map((order) => (
+              <ActiveOrderCard key={order.id} {...order} />
+            ))}
+
+            <RecentlyDelivered items={RECENT_ORDERS} />
+          </>
+        )}
+
+        {activeTab === "Delivered" && (
+          <RecentlyDelivered items={RECENT_ORDERS} />
+        )}
+
+        {activeTab === "Cancelled" && (
+          <View className="flex-1 items-center justify-center mt-20">
+            <Text className="text-base text-slate-400 font-semibold">
+              No cancelled orders
+            </Text>
+          </View>
+        )}
+
+        <View className="h-8" />
+      </ScrollView>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  activeTabBorder: {
+    borderBottomWidth: 2,
+    borderBottomColor: "#1C74E9",
+  },
+  activeTabText: { color: "#1C74E9" },
+  inactiveTabText: { color: "#94a3b8" },
+});

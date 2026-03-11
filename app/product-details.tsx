@@ -148,7 +148,10 @@ export default function ProductDetailsScreen() {
 
       {/* Bottom CTA */}
       <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-100 px-4 py-4 pb-8">
-        <TouchableOpacity className="bg-primary flex-row items-center justify-center py-4 rounded-2xl">
+        <TouchableOpacity
+          className="bg-primary flex-row items-center justify-center py-4 rounded-2xl"
+          onPress={() => router.push({ pathname: '/chat', params: { productId: id } })}
+        >
           <Ionicons name="chatbubble-outline" size={18} color="white" />
           <Text className="text-white font-bold text-base ml-2">Get in Touch</Text>
         </TouchableOpacity>
