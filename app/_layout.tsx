@@ -19,9 +19,18 @@ export default function RootLayout() {
         <Stack.Screen name="order-status" options={{ headerShown: false }} />
         <Stack.Screen name="order-details" options={{ headerShown: false }} />
         <Stack.Screen name="sell-item" options={{ headerShown: false }} />
-        <Stack.Screen name="sell-item-details" options={{ headerShown: false }} />
-        <Stack.Screen name="sell-item-payment" options={{ headerShown: false }} />
-        <Stack.Screen name="sell-item-success" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="sell-item-details"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="sell-item-payment"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="sell-item-success"
+          options={{ headerShown: false }}
+        />
         <Stack.Screen name="my-listings" options={{ headerShown: false }} />
         <Stack.Screen
           name="modal"
