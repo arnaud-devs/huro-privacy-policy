@@ -157,9 +157,7 @@ export default function SellItemDetailsScreen() {
       <View style={styles.footer}>
         <TouchableOpacity
           className="bg-primary rounded-full py-4 items-center mx-4 mb-2"
-          onPress={() => {
-            /* navigate to step 3 (review & post) */
-          }}
+          onPress={() => router.push("/sell-item-payment")}
         >
           <Text className="text-white font-bold text-base">Next</Text>
         </TouchableOpacity>
