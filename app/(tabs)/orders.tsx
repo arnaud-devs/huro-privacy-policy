@@ -109,12 +109,18 @@ export default function OrdersScreen() {
               />
             ))}
 
-            <RecentlyDelivered items={RECENT_ORDERS} />
+            <RecentlyDelivered
+              items={RECENT_ORDERS}
+              onPress={(id) => router.push({ pathname: "/order-details", params: { orderId: id } })}
+            />
           </>
         )}
 
         {activeTab === "Delivered" && (
-          <RecentlyDelivered items={RECENT_ORDERS} />
+          <RecentlyDelivered
+            items={RECENT_ORDERS}
+            onPress={(id) => router.push({ pathname: "/order-details", params: { orderId: id } })}
+          />
         )}
 
         {activeTab === "Cancelled" && (

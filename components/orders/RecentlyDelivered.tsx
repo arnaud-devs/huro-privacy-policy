@@ -14,6 +14,7 @@ interface RecentOrderItem {
 interface RecentlyDeliveredProps {
   items: RecentOrderItem[];
   onViewAll?: () => void;
+  onPress?: (id: string) => void;
   onRate?: (id: string) => void;
   onReorder?: (id: string) => void;
 }
@@ -21,6 +22,7 @@ interface RecentlyDeliveredProps {
 export default function RecentlyDelivered({
   items,
   onViewAll,
+  onPress,
   onRate,
   onReorder,
 }: RecentlyDeliveredProps) {
@@ -35,8 +37,9 @@ export default function RecentlyDelivered({
       </View>
 
       {items.map((item) => (
-        <View
+        <TouchableOpacity
           key={item.id}
+          onPress={() => onPress?.(item.id)}
           className="flex-row items-center bg-white rounded-2xl mb-3 px-4 py-3 border border-slate-100"
         >
           <Image
@@ -68,7 +71,7 @@ export default function RecentlyDelivered({
               <Text className="text-xs font-semibold text-slate-700">Reorder</Text>
             </TouchableOpacity>
           )}
-        </View>
+        </TouchableOpacity>
       ))}
     </View>
   );
