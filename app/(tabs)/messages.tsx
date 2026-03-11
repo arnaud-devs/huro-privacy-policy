@@ -1,10 +1,18 @@
-import { useState } from "react";
-import { FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useState } from "react";
+import {
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import ConversationItem, { Conversation } from "@/components/messages/ConversationItem";
+import ConversationItem, {
+  Conversation,
+} from "@/components/messages/ConversationItem";
 
 type Filter = "All" | "Unread";
 
@@ -64,13 +72,24 @@ export default function MessagesScreen() {
     <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
       {/* Header */}
       <View className="flex-row items-center px-4 py-3 border-b border-slate-100">
-        <TouchableOpacity onPress={() => router.back()} className="mr-3">
-          <Ionicons name="arrow-back" size={24} color="#0f172a" />
-        </TouchableOpacity>
-        <Text className="flex-1 text-xl font-bold text-slate-900 text-center">Messages</Text>
-        <TouchableOpacity>
-          <Ionicons name="search-outline" size={22} color="#0f172a" />
-        </TouchableOpacity>
+        <Text className="flex-1 text-xl font-bold text-slate-900">
+          Messages
+        </Text>
+        <View className="flex-row items-center gap-3">
+          <TouchableOpacity>
+            <Ionicons name="search-outline" size={22} color="#0f172a" />
+          </TouchableOpacity>
+          <TouchableOpacity style={{ position: "relative" }}>
+            <Ionicons name="cart-outline" size={24} color="#0F172A" />
+            <View style={styles.cartBadge}>
+              <Text style={styles.cartBadgeText}>2</Text>
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity style={{ position: "relative" }}>
+            <Ionicons name="notifications-outline" size={22} color="#0F172A" />
+            <View style={styles.dotBadge} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Filter pills */}
@@ -84,7 +103,9 @@ export default function MessagesScreen() {
           >
             <Text
               className="text-sm font-semibold"
-              style={filter === f ? styles.pillTextActive : styles.pillTextInactive}
+              style={
+                filter === f ? styles.pillTextActive : styles.pillTextInactive
+              }
             >
               {f}
             </Text>
@@ -101,7 +122,10 @@ export default function MessagesScreen() {
             <ConversationItem
               item={item}
               onPress={(conv) =>
-                router.push({ pathname: "/chat", params: { productId: conv.id } })
+                router.push({
+                  pathname: "/chat",
+                  params: { productId: conv.id },
+                })
               }
             />
             {index < displayed.length - 1 && (
@@ -120,4 +144,29 @@ const styles = StyleSheet.create({
   pillInactive: { backgroundColor: "#f1f5f9" },
   pillTextActive: { color: "#ffffff" },
   pillTextInactive: { color: "#64748b" },
+  cartBadge: {
+    position: "absolute",
+    top: -6,
+    right: -6,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: "#1C74E9",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cartBadgeText: {
+    fontSize: 9,
+    color: "white",
+    fontWeight: "700",
+  },
+  dotBadge: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#ef4444",
+  },
 });

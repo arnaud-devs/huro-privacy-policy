@@ -1,7 +1,14 @@
-import { useState } from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useState } from "react";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import ActiveOrderCard from "@/components/orders/ActiveOrderCard";
 import RecentlyDelivered from "@/components/orders/RecentlyDelivered";
@@ -65,7 +72,26 @@ export default function OrdersScreen() {
     <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
       {/* Header */}
       <View className="bg-white px-4 pt-2 pb-0 border-b border-slate-100">
-        <Text className="text-xl font-bold text-slate-900 text-center mb-4">Orders</Text>
+        {/* Title row with action icons */}
+        <View className="flex-row items-center justify-between mb-4">
+          <Text className="text-xl font-bold text-slate-900">Orders</Text>
+          <View className="flex-row items-center gap-3">
+            <TouchableOpacity style={{ position: "relative" }}>
+              <Ionicons name="cart-outline" size={24} color="#0F172A" />
+              <View style={styles.cartBadge}>
+                <Text style={styles.cartBadgeText}>2</Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity style={{ position: "relative" }}>
+              <Ionicons
+                name="notifications-outline"
+                size={22}
+                color="#0F172A"
+              />
+              <View style={styles.dotBadge} />
+            </TouchableOpacity>
+          </View>
+        </View>
 
         {/* Tabs */}
         <View className="flex-row">
@@ -80,7 +106,9 @@ export default function OrdersScreen() {
               >
                 <Text
                   className="text-sm font-semibold"
-                  style={isActive ? styles.activeTabText : styles.inactiveTabText}
+                  style={
+                    isActive ? styles.activeTabText : styles.inactiveTabText
+                  }
                 >
                   {tab}
                 </Text>
@@ -90,7 +118,10 @@ export default function OrdersScreen() {
         </View>
       </View>
 
-      <ScrollView className="flex-1 px-4 pt-4" showsVerticalScrollIndicator={false}>
+      <ScrollView
+        className="flex-1 px-4 pt-4"
+        showsVerticalScrollIndicator={false}
+      >
         {activeTab === "Active" && (
           <>
             <Text className="text-lg font-bold text-slate-900 mb-4">
@@ -103,7 +134,11 @@ export default function OrdersScreen() {
                 {...order}
                 onPrimaryAction={
                   order.primaryAction.label === "Track Order"
-                    ? () => router.push({ pathname: "/order-status", params: { orderId: order.id } })
+                    ? () =>
+                        router.push({
+                          pathname: "/order-status",
+                          params: { orderId: order.id },
+                        })
                     : undefined
                 }
               />
@@ -111,7 +146,12 @@ export default function OrdersScreen() {
 
             <RecentlyDelivered
               items={RECENT_ORDERS}
-              onPress={(id) => router.push({ pathname: "/order-details", params: { orderId: id } })}
+              onPress={(id) =>
+                router.push({
+                  pathname: "/order-details",
+                  params: { orderId: id },
+                })
+              }
             />
           </>
         )}
@@ -119,7 +159,12 @@ export default function OrdersScreen() {
         {activeTab === "Delivered" && (
           <RecentlyDelivered
             items={RECENT_ORDERS}
-            onPress={(id) => router.push({ pathname: "/order-details", params: { orderId: id } })}
+            onPress={(id) =>
+              router.push({
+                pathname: "/order-details",
+                params: { orderId: id },
+              })
+            }
           />
         )}
 
@@ -144,4 +189,29 @@ const styles = StyleSheet.create({
   },
   activeTabText: { color: "#1C74E9" },
   inactiveTabText: { color: "#94a3b8" },
+  cartBadge: {
+    position: "absolute",
+    top: -6,
+    right: -6,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: "#1C74E9",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cartBadgeText: {
+    fontSize: 9,
+    color: "white",
+    fontWeight: "700",
+  },
+  dotBadge: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#ef4444",
+  },
 });
