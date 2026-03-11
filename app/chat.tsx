@@ -130,11 +130,11 @@ export default function ChatScreen() {
           <Ionicons name="arrow-back" size={24} color="#0f172a" />
         </TouchableOpacity>
 
-        <View className="flex-1">
+        <View className="flex-1 items-center">
           <Text className="text-lg font-bold text-slate-900">
-            {conversation.sellerName}
+            {conversation.sellerName} (Verified Student)
           </Text>
-          <Text className="text-xs text-primary font-semibold">Online</Text>
+          <Text className="text-xs font-bold" style={{ color: "#22c55e" }}>ONLINE</Text>
         </View>
 
         <TouchableOpacity>
@@ -160,6 +160,7 @@ export default function ChatScreen() {
                 params: { id: productId },
               })
             }
+            onMakeOffer={() => {}}
           />
 
           {/* Date separator */}
