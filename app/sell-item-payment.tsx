@@ -2,7 +2,6 @@ import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,12 +10,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-const PHONE_NUMBERS = [
-  "+250 *** *** ***",
-  "+250 078 *** ***",
-  "+250 072 *** ***",
-];
 
 export default function SellItemPaymentScreen() {
   const router = useRouter();
@@ -302,45 +295,5 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "700",
     fontSize: 16,
-  },
-  /* Modal */
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-  },
-  modalSheet: {
-    backgroundColor: "white",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingTop: 12,
-    paddingBottom: 40,
-  },
-  modalHandle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: "#cbd5e1",
-    alignSelf: "center",
-    marginBottom: 12,
-  },
-  modalRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f1f5f9",
-  },
-  modalRowActive: {
-    backgroundColor: "#f0f7ff",
-  },
-  modalRowText: {
-    fontSize: 14,
-    color: "#334155",
-  },
-  modalRowTextActive: {
-    color: "#1C74E9",
-    fontWeight: "600",
   },
 });
