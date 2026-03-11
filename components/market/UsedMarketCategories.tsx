@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
-import { ScrollView, Text, TouchableOpacity } from "react-native";
+import { ScrollView, StyleSheet, Text, TouchableOpacity } from "react-native";
 
 const CATEGORIES = [
   { id: "1", name: "All", icon: "grid-outline" },
@@ -26,7 +26,8 @@ export default function UsedMarketCategories() {
           <TouchableOpacity
             key={cat.id}
             onPress={() => setActive(cat.id)}
-            className={`flex-row items-center px-4 py-2 bg-slate-100 rounded-full border border-slate-200 ${isActive ? "bg-primary border-primary" : "bg-slate-50"}`}
+            className="flex-row items-center px-4 py-2 rounded-full border"
+            style={isActive ? styles.activePill : styles.inactivePill}
           >
             <Ionicons
               name={cat.icon as any}
@@ -34,7 +35,8 @@ export default function UsedMarketCategories() {
               color={isActive ? "white" : "#64748b"}
             />
             <Text
-              className={`ml-2 text-sm font-semibold ${isActive ? "text-white" : "text-slate-600"}`}
+              className="ml-2 text-sm font-semibold"
+              style={isActive ? styles.activeText : styles.inactiveText}
             >
               {cat.name}
             </Text>
@@ -44,3 +46,20 @@ export default function UsedMarketCategories() {
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  activePill: {
+    backgroundColor: "#1C74E9",
+    borderColor: "#1C74E9",
+  },
+  inactivePill: {
+    backgroundColor: "#f8fafc",
+    borderColor: "#e2e8f0",
+  },
+  activeText: {
+    color: "#ffffff",
+  },
+  inactiveText: {
+    color: "#475569",
+  },
+});

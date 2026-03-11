@@ -35,7 +35,7 @@ export default function UsedMarketListings() {
         <View key={item.id} className="bg-white rounded-3xl mb-4 border border-slate-100 shadow-sm overflow-hidden">
           <Image 
             source={{ uri: item.image }} 
-            className="w-full h-40 bg-slate-100" 
+            className="w-full h-52 bg-slate-100" 
             contentFit="cover" 
           />
           
