@@ -6,7 +6,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -79,7 +79,10 @@ export default function MessagesScreen() {
           <TouchableOpacity>
             <Ionicons name="search-outline" size={22} color="#0f172a" />
           </TouchableOpacity>
-          <TouchableOpacity style={{ position: "relative" }}>
+          <TouchableOpacity
+            style={{ position: "relative" }}
+            onPress={() => router.push("/cart")}
+          >
             <Ionicons name="cart-outline" size={24} color="#0F172A" />
             <View style={styles.cartBadge}>
               <Text style={styles.cartBadgeText}>2</Text>

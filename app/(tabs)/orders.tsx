@@ -76,7 +76,10 @@ export default function OrdersScreen() {
         <View className="flex-row items-center justify-between mb-4">
           <Text className="text-xl font-bold text-slate-900">Orders</Text>
           <View className="flex-row items-center gap-3">
-            <TouchableOpacity style={{ position: "relative" }}>
+            <TouchableOpacity
+              style={{ position: "relative" }}
+              onPress={() => router.push("/cart")}
+            >
               <Ionicons name="cart-outline" size={24} color="#0F172A" />
               <View style={styles.cartBadge}>
                 <Text style={styles.cartBadgeText}>2</Text>
