@@ -53,7 +53,10 @@ export default function OrderStatusScreen() {
     <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
       {/* Header */}
       <View className="flex-row items-center px-4 py-3 bg-white border-b border-slate-100">
-        <TouchableOpacity onPress={() => router.back()} className="mr-3">
+        <TouchableOpacity
+          onPress={() => router.replace("/(tabs)/orders")}
+          className="mr-3"
+        >
           <Ionicons name="arrow-back" size={24} color="#0f172a" />
         </TouchableOpacity>
         <Text className="flex-1 text-lg font-bold text-slate-900 text-center mr-7">

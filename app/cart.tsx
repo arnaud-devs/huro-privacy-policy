@@ -3,11 +3,11 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -184,7 +184,20 @@ export default function CartScreen() {
         </View>
 
         {/* ── Confirm CTA ── */}
-        <TouchableOpacity style={styles.confirmBtn} activeOpacity={0.85}>
+        <TouchableOpacity
+          style={styles.confirmBtn}
+          activeOpacity={0.85}
+          onPress={() =>
+            router.push({
+              pathname: "/order-checkout",
+              params: {
+                subtotal: String(subtotal),
+                itemName: items[0]?.name ?? "",
+                itemImage: items[0]?.image ?? "",
+              },
+            })
+          }
+        >
           <Text style={styles.confirmText}>Confirm Order</Text>
           <Ionicons
             name="arrow-forward"
