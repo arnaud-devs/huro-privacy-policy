@@ -25,13 +25,14 @@ export default function SignUpScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
 
-        <View className="flex-1 px-6 pt-2.5">
-          <AuthLogo />
+        <View className="flex-1 px-6 pt-2.5 justify-center">
+          <View className="flex-grow justify-center h-full">
+            <AuthLogo />
 
           <Text className="text-3xl font-bold text-slate-900 mb-3 text-center">
             Create Account
           </Text>
-          <Text className="text-base text-slate-600 leading-[22px] mb-8">
+          <Text className="text-base text-slate-600 leading-[22px] mb-8 text-center">
             Welcome! Please enter your email address to get started with your
             campus community.
           </Text>
@@ -56,8 +57,8 @@ export default function SignUpScreen() {
               });
             }}
           />
-
-          <View className="flex-row justify-center items-center mt-auto mb-5">
+          </View>
+          <View className="flex-row justify-center items-center mb-20">
             <Text className="text-base text-slate-500">
               Already have an account?{" "}
             </Text>
