@@ -10,7 +10,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import AuthButton from "@/components/auth/AuthButton";
-import AuthHeader from "@/components/auth/AuthHeader";
 import AuthInput from "@/components/auth/AuthInput";
 import AuthLogo from "@/components/auth/AuthLogo";
 
@@ -25,12 +24,11 @@ export default function SignUpScreen() {
         className="flex-1 bg-white"
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <AuthHeader title="Sign Up" />
 
         <View className="flex-1 px-6 pt-2.5">
           <AuthLogo />
 
-          <Text className="text-3xl font-bold text-slate-900 mb-3">
+          <Text className="text-3xl font-bold text-slate-900 mb-3 text-center">
             Create Account
           </Text>
           <Text className="text-base text-slate-600 leading-[22px] mb-8">

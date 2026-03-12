@@ -66,13 +66,6 @@ export default function LoginScreen() {
   return (
     <SafeAreaView style={styles.root} edges={["top"]}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={22} color="#0f172a" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Login</Text>
-        <View style={{ width: 34 }} />
-      </View>
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -176,6 +169,14 @@ export default function LoginScreen() {
             </View>
           )}
 
+          {/* Sign up prompt */}
+          <View style={styles.signupRow}>
+            <Text style={styles.signupText}>Don't have an account? </Text>
+            <TouchableOpacity onPress={() => router.push("/sign-up")}>
+              <Text style={styles.signupLink}>Sign Up</Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Footer */}
           <View style={styles.footer}>
             <Ionicons name="lock-closed-outline" size={12} color="#94a3b8" />
@@ -207,7 +208,12 @@ const styles = StyleSheet.create({
   backBtn: { width: 34, height: 34, justifyContent: "center" },
   headerTitle: { fontSize: 17, fontWeight: "700", color: "#0f172a" },
 
-  scroll: { padding: 24, paddingBottom: 40 },
+  scroll: {
+    flexGrow: 1,
+    justifyContent: "center",
+    padding: 24,
+    paddingBottom: 40,
+  },
 
   // Logo
   logoWrap: { alignItems: "center", marginBottom: 24, marginTop: 8 },
@@ -314,6 +320,17 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     textDecorationLine: "underline",
   },
+
+  // Sign up prompt
+  signupRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 24,
+    marginBottom: 8,
+  },
+  signupText: { fontSize: 13, color: "#64748b" },
+  signupLink: { fontSize: 13, color: "#1C74E9", fontWeight: "700" },
 
   // Footer
   footer: {

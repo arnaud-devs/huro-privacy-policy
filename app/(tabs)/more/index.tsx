@@ -6,7 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 const MENU_ITEMS = [
   { icon: "list-outline", label: "My Listings", route: "/(tabs)/more/my-listings" },
   { icon: "heart-outline", label: "Saved Items", route: null },
-  { icon: "person-outline", label: "Profile", route: null },
+  { icon: "person-outline", label: "Profile", route: "/(tabs)/more/profile" },
   { icon: "settings-outline", label: "Settings", route: null },
   { icon: "help-circle-outline", label: "Help & Support", route: null },
 ];
