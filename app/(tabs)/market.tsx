@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -14,9 +14,16 @@ import UsedMarketListings from "@/components/market/UsedMarketListings";
 
 export default function MarketScreen() {
   const router = useRouter();
+  const { tab } = useLocalSearchParams<{ tab?: string }>();
   const [activeTab, setActiveTab] = useState<"Campus Store" | "Used Market">(
-    "Campus Store",
+    tab === "Used Market" ? "Used Market" : "Campus Store",
   );
+
+  useEffect(() => {
+    if (tab === "Used Market" || tab === "Campus Store") {
+      setActiveTab(tab);
+    }
+  }, [tab]);
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
