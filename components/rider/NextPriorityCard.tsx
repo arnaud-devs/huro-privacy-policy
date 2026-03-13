@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-export function NextPriorityCard() {
+export function NextPriorityCard({ onOptionsPress, onMarkDelivered }: { onOptionsPress?: () => void; onMarkDelivered?: () => void }) {
   return (
     <View style={styles.card}>
       <View style={styles.header}>
@@ -30,7 +30,7 @@ export function NextPriorityCard() {
       </View>
 
       <View style={styles.actionsRow}>
-        <TouchableOpacity style={styles.mainBtn} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.mainBtn} activeOpacity={0.85} onPress={onMarkDelivered}>
           <Text style={styles.mainBtnText}>Mark Delivered</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.iconBtn} activeOpacity={0.85}>
@@ -41,7 +41,7 @@ export function NextPriorityCard() {
             style={{ transform: [{ rotate: "180deg" }] }}
           />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.iconBtn} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.iconBtn} activeOpacity={0.85} onPress={onOptionsPress}>
           <Ionicons name="ellipsis-vertical" size={20} color="#FFFFFF" />
         </TouchableOpacity>
       </View>

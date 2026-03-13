@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { DeliveryProgressCard } from "@/components/rider/DeliveryProgressCard";
 import { LeaveDeliveryModal } from "@/components/rider/LeaveDeliveryModal";
+import { ConfirmDeliveryModal } from "@/components/rider/ConfirmDeliveryModal";
 import { ManualPickupEntry } from "@/components/rider/ManualPickupEntry";
 import { NextPriorityCard } from "@/components/rider/NextPriorityCard";
 import { QueueItemCard } from "@/components/rider/QueueItemCard";
@@ -20,6 +21,7 @@ import { RecentlyDeliveredCard } from "@/components/rider/RecentlyDeliveredCard"
 export default function ActiveDeliveryScreen() {
   const router = useRouter();
   const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const handleLeavePress = () => {
     setShowLeaveModal(true);
@@ -56,7 +58,7 @@ export default function ActiveDeliveryScreen() {
       >
         <DeliveryProgressCard />
 
-        <NextPriorityCard />
+        <NextPriorityCard onOptionsPress={() => setShowConfirmModal(true)} onMarkDelivered={() => router.push("/(rider)/scan-qr")} />
 
         <ManualPickupEntry />
 
@@ -65,7 +67,7 @@ export default function ActiveDeliveryScreen() {
           <Text style={styles.sectionTitle}>REMAINING QUEUE</Text>
         </View>
 
-        <QueueItemCard />
+        <QueueItemCard onOptionsPress={() => setShowConfirmModal(true)} onMarkDelivered={() => router.push("/(rider)/scan-qr")} />
 
         <View style={[styles.sectionHeaderWrap, { marginTop: 12 }]}>
           <Ionicons name="checkmark-circle-outline" size={16} color="#94A3B8" />
@@ -91,6 +93,11 @@ export default function ActiveDeliveryScreen() {
         visible={showLeaveModal}
         onReturn={handleReturn}
         onGoToDashboard={handleGoToDashboard}
+      />
+
+      <ConfirmDeliveryModal
+        visible={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
       />
     </SafeAreaView>
   );

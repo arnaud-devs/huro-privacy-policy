@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-export function QueueItemCard() {
+export function QueueItemCard({ onOptionsPress, onMarkDelivered }: { onOptionsPress?: () => void; onMarkDelivered?: () => void }) {
   return (
     <View style={styles.card}>
       <View style={styles.topRow}>
@@ -13,12 +13,12 @@ export function QueueItemCard() {
           <Text style={styles.orderId}>Order #1042</Text>
           <Text style={styles.details}>Sam Chen • Science Block B</Text>
         </View>
-        <TouchableOpacity style={styles.moreBtn}>
+        <TouchableOpacity style={styles.moreBtn} onPress={onOptionsPress}>
           <Ionicons name="ellipsis-vertical" size={18} color="#94A3B8" />
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={styles.actionBtn} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.actionBtn} activeOpacity={0.85} onPress={onMarkDelivered}>
         <Text style={styles.actionBtnText}>Mark Delivered</Text>
       </TouchableOpacity>
     </View>
