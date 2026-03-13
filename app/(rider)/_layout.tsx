@@ -33,7 +33,11 @@ export default function RiderTabLayout() {
         options={{
           title: "HOME",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons size={24} name={focused ? "home" : "home-outline"} color={color} />
+            <Ionicons
+              size={24}
+              name={focused ? "home" : "home-outline"}
+              color={color}
+            />
           ),
         }}
       />
@@ -42,7 +46,11 @@ export default function RiderTabLayout() {
         options={{
           title: "EARNINGS",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons size={24} name={focused ? "wallet" : "wallet-outline"} color={color} />
+            <Ionicons
+              size={24}
+              name={focused ? "wallet" : "wallet-outline"}
+              color={color}
+            />
           ),
         }}
       />
@@ -51,7 +59,11 @@ export default function RiderTabLayout() {
         options={{
           title: "HISTORY",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons size={24} name={focused ? "time" : "time-outline"} color={color} />
+            <Ionicons
+              size={24}
+              name={focused ? "time" : "time-outline"}
+              color={color}
+            />
           ),
         }}
       />
@@ -60,7 +72,11 @@ export default function RiderTabLayout() {
         options={{
           title: "PROFILE",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons size={24} name={focused ? "person" : "person-outline"} color={color} />
+            <Ionicons
+              size={24}
+              name={focused ? "person" : "person-outline"}
+              color={color}
+            />
           ),
         }}
       />
@@ -68,6 +84,14 @@ export default function RiderTabLayout() {
         name="pickup-batch"
         options={{
           href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
+        name="active-delivery"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
         }}
       />
     </Tabs>

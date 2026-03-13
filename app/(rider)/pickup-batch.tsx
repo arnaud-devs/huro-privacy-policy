@@ -1,11 +1,20 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { PickupProgressCard } from "@/components/rider/PickupProgressCard";
-import { PickupShopSection, ShopBatch } from "@/components/rider/PickupShopSection";
+import {
+    PickupShopSection,
+    ShopBatch,
+} from "@/components/rider/PickupShopSection";
 import { PickupStatsGrid } from "@/components/rider/PickupStatsGrid";
 
 const INITIAL_SHOPS: ShopBatch[] = [
@@ -32,11 +41,13 @@ const INITIAL_SHOPS: ShopBatch[] = [
 export default function PickupBatchScreen() {
   const router = useRouter();
   const [shops, setShops] = useState<ShopBatch[]>(INITIAL_SHOPS);
-  
+
   const totalOrders = 26;
   // Calculate newly picked up items natively based on interaction
   const pickedUp = shops.reduce((total, shop) => {
-    return total + shop.items.filter((item) => item.status === "collected").length;
+    return (
+      total + shop.items.filter((item) => item.status === "collected").length
+    );
   }, 0);
 
   const handleItemToggle = (shopName: string, itemId: string) => {
@@ -53,20 +64,27 @@ export default function PickupBatchScreen() {
             if (item.status === "not-collected") newStatus = "pending";
             else if (item.status === "pending") newStatus = "collected";
             else if (item.status === "collected") newStatus = "out-of-stock";
-            else if (item.status === "out-of-stock") newStatus = "not-collected";
+            else if (item.status === "out-of-stock")
+              newStatus = "not-collected";
 
             return { ...item, status: newStatus as any };
           }),
         };
-      })
+      }),
     );
   };
 
   return (
     <SafeAreaView style={styles.root} edges={["top"]}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         <View style={styles.headerRow}>
-          <TouchableOpacity style={styles.iconButton} onPress={() => router.back()}>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => router.back()}
+          >
             <Ionicons name="arrow-back" size={22} color="#1E293B" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Pickup Batch #124</Text>
@@ -86,7 +104,11 @@ export default function PickupBatchScreen() {
           />
         ))}
 
-        <TouchableOpacity style={styles.startDeliveryBtn} activeOpacity={0.85}>
+        <TouchableOpacity
+          style={styles.startDeliveryBtn}
+          activeOpacity={0.85}
+          onPress={() => router.push("/(rider)/active-delivery")}
+        >
           <Text style={styles.startDeliveryText}>Start Delivery</Text>
         </TouchableOpacity>
       </ScrollView>
