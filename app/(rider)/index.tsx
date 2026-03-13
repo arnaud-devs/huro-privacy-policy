@@ -95,7 +95,11 @@ export default function RiderHomeScreen() {
           </View>
 
           {/* Start Pickup button */}
-          <TouchableOpacity style={styles.startBtn} activeOpacity={0.85}>
+          <TouchableOpacity
+            style={styles.startBtn}
+            activeOpacity={0.85}
+            onPress={() => router.push("/(rider)/pickup-batch")}
+          >
             <Ionicons name="navigate-outline" size={18} color="white" style={{ marginRight: 8 }} />
             <Text style={styles.startBtnText}>Start Pickup</Text>
           </TouchableOpacity>

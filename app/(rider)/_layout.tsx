@@ -64,6 +64,12 @@ export default function RiderTabLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="pickup-batch"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }
