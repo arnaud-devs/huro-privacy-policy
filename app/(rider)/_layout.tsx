@@ -42,19 +42,6 @@ export default function RiderTabLayout() {
         }}
       />
       <Tabs.Screen
-        name="earnings"
-        options={{
-          title: "EARNINGS",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              size={24}
-              name={focused ? "wallet" : "wallet-outline"}
-              color={color}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="history"
         options={{
           title: "HISTORY",
