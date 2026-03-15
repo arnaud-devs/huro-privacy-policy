@@ -91,7 +91,7 @@ export default function SellItemSuccessScreen() {
       <View className="px-5 pb-8 gap-3">
         <TouchableOpacity
           style={styles.primaryBtn}
-          onPress={() => router.replace("/my-listings")}
+          onPress={() => router.replace("/(tabs)/more/my-listings")}
         >
           <Text style={styles.primaryBtnText}>View My Listing</Text>
         </TouchableOpacity>

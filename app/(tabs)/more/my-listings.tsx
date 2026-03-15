@@ -46,7 +46,7 @@ const ACTIVE_LISTINGS: Listing[] = [
 const SOLD_LISTINGS: Listing[] = [
   {
     id: "3",
-    title: "HP Laptop 14\"",
+    title: 'HP Laptop 14"',
     price: "320,000 RWF",
     status: "SOLD",
     views: 560,
@@ -82,12 +82,10 @@ function ListingCard({ item }: { item: Listing }) {
   return (
     <View style={styles.card}>
       <View className="flex-row items-center">
-        {/* Thumbnail */}
         <View style={styles.thumb}>
           <Ionicons name="image-outline" size={28} color="#cbd5e1" />
         </View>
 
-        {/* Info */}
         <View className="flex-1 ml-3">
           <View className="flex-row items-center justify-between">
             <Text className="text-sm font-bold text-slate-800 flex-shrink" numberOfLines={1}>
@@ -114,7 +112,6 @@ function ListingCard({ item }: { item: Listing }) {
         </View>
       </View>
 
-      {/* Divider + actions */}
       <View style={styles.divider} />
       <View className="flex-row items-center">
         <TouchableOpacity style={styles.actionBtn} className="flex-row items-center gap-1">
@@ -145,7 +142,7 @@ export default function MyListingsScreen() {
       {/* Header */}
       <View className="flex-row items-center px-4 pt-2 pb-3 bg-white">
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => router.replace("/(tabs)/more")}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons name="arrow-back" size={24} color="#1e293b" />

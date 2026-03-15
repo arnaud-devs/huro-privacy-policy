@@ -7,7 +7,11 @@ export default function HomeHeader() {
   const router = useRouter();
   return (
     <View className="flex-row justify-between items-center mb-5 mt-2">
-      <View className="flex-row items-center">
+      <TouchableOpacity
+        className="flex-row items-center"
+        activeOpacity={0.7}
+        onPress={() => router.push("/(tabs)/more/profile")}
+      >
         <View className="w-11 h-11 rounded-full bg-rose-100 mr-3 overflow-hidden">
           <Image
             source={{ uri: "https://i.pravatar.cc/100?img=11" }}
@@ -19,7 +23,7 @@ export default function HomeHeader() {
           <Text className="text-sm text-slate-500">Welcome back,</Text>
           <Text className="text-base font-bold text-primary">Alex Chen</Text>
         </View>
-      </View>
+      </TouchableOpacity>
       <View className="flex-row items-center gap-3">
         {/* Cart icon with item count badge */}
         <TouchableOpacity

@@ -14,6 +14,8 @@ export default function RootLayout() {
     <>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="(rider)" options={{ headerShown: false }} />
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="cart" options={{ headerShown: false }} />
         <Stack.Screen name="product-details" options={{ headerShown: false }} />
         <Stack.Screen
@@ -21,8 +23,7 @@ export default function RootLayout() {
           options={{ headerShown: false }}
         />
         <Stack.Screen name="chat" options={{ headerShown: false }} />
-        <Stack.Screen name="order-status" options={{ headerShown: false }} />
-        <Stack.Screen name="order-details" options={{ headerShown: false }} />
+
         <Stack.Screen name="sell-item" options={{ headerShown: false }} />
         <Stack.Screen
           name="sell-item-details"
@@ -36,7 +37,6 @@ export default function RootLayout() {
           name="sell-item-success"
           options={{ headerShown: false }}
         />
-        <Stack.Screen name="my-listings" options={{ headerShown: false }} />
         <Stack.Screen
           name="modal"
           options={{ presentation: "modal", title: "Modal" }}

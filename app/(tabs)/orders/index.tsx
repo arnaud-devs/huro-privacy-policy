@@ -2,11 +2,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -139,7 +139,7 @@ export default function OrdersScreen() {
                   order.primaryAction.label === "Track Order"
                     ? () =>
                         router.push({
-                          pathname: "/order-status",
+                          pathname: "/(tabs)/orders/order-status",
                           params: { orderId: order.id },
                         })
                     : undefined
@@ -151,7 +151,7 @@ export default function OrdersScreen() {
               items={RECENT_ORDERS}
               onPress={(id) =>
                 router.push({
-                  pathname: "/order-details",
+                  pathname: "/(tabs)/orders/order-details",
                   params: { orderId: id },
                 })
               }
@@ -164,7 +164,7 @@ export default function OrdersScreen() {
             items={RECENT_ORDERS}
             onPress={(id) =>
               router.push({
-                pathname: "/order-details",
+                pathname: "/(tabs)/orders/order-details",
                 params: { orderId: id },
               })
             }
