@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import React, { useEffect } from "react";
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, StyleSheet, Text, TouchableOpacity, View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type MenuItem = {
@@ -118,8 +118,9 @@ export default function ProfileScreen() {
         <View style={{ width: 34 }} />
       </View>
 
-      {/* Avatar card */}
-      <View style={styles.avatarCard}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Avatar card */}
+        <View style={styles.avatarCard}>
         <Image
           source={{
             uri:
@@ -184,12 +185,14 @@ export default function ProfileScreen() {
           </View>
         </View>
       ))}
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#f8fafc" },
+  scrollContent: { paddingBottom: 40 },
 
   header: {
     flexDirection: "row",
