@@ -10,7 +10,7 @@ import {
   ScrollView,
   Switch,
   Text,
-  View
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -28,7 +28,20 @@ export default function RiderProfileScreen() {
         style: "destructive",
         onPress: async () => {
           if (tokens?.refreshToken) {
-            await dispatch(logoutUser({ refreshToken: tokens.refreshToken }));
+            try {
+              await dispatch(
+                logoutUser({ refreshToken: tokens.refreshToken }),
+              ).unwrap();
+              console.log("Rider successfully logged out.");
+              router.replace("/(auth)/login");
+            } catch (error) {
+              console.error("Logout failed:", error);
+              console.log("Forcing client-side logout anyway.");
+              router.replace("/(auth)/login");
+            }
+          } else {
+            console.log("Logged out. No refresh token found.");
+            router.replace("/(auth)/login");
           }
         },
       },
