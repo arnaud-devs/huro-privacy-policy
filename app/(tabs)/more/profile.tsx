@@ -1,7 +1,9 @@
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { logoutUser } from "@/store/slices/userSlice";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type MenuItem = {
@@ -74,6 +76,24 @@ const SECTIONS: Section[] = [
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
+  const { tokens } = useAppSelector((state) => state.user);
+
+  const handleLogout = () => {
+    Alert.alert("Logout", "Are you sure you want to log out?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Logout",
+        style: "destructive",
+        onPress: async () => {
+          if (tokens?.refreshToken) {
+            await dispatch(logoutUser({ refreshToken: tokens.refreshToken }));
+          }
+          router.replace("/login");
+        },
+      },
+    ]);
+  };
 
   return (
     <SafeAreaView style={styles.root} edges={["top"]}>
@@ -116,7 +136,7 @@ export default function ProfileScreen() {
                 ]}
                 onPress={() =>
                   item.danger
-                    ? router.replace("/login")
+                    ? handleLogout()
                     : item.route && router.push(item.route as any)
                 }
                 activeOpacity={0.7}
@@ -142,9 +162,9 @@ export default function ProfileScreen() {
                   {item.label}
                 </Text>
                 <Ionicons
-                name="chevron-forward"
-                size={18}
-                color={item.danger ? "#ef4444" : "#94a3b8"}
+                  name="chevron-forward"
+                  size={18}
+                  color={item.danger ? "#ef4444" : "#94a3b8"}
                 />
               </TouchableOpacity>
             ))}

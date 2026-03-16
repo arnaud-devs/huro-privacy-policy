@@ -1,12 +1,24 @@
-import React, { useState } from "react";
-import { View, Text, ScrollView, Pressable, Image, Switch, Alert } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { logoutUser } from "@/store/slices/userSlice";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import React, { useState } from "react";
+import {
+  Alert,
+  Image,
+  Pressable,
+  ScrollView,
+  Switch,
+  Text,
+  View
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function RiderProfileScreen() {
   const router = useRouter();
   const [isOnline, setIsOnline] = useState(true);
+  const dispatch = useAppDispatch();
+  const { tokens, isLoading } = useAppSelector((state) => state.user);
 
   const handleLogout = () => {
     Alert.alert("Logout", "Are you sure you want to log out?", [
@@ -14,9 +26,10 @@ export default function RiderProfileScreen() {
       {
         text: "Logout",
         style: "destructive",
-        onPress: () => {
-          // You can also add your authentication logout logic here later if needed
-          router.replace("/(auth)/login");
+        onPress: async () => {
+          if (tokens?.refreshToken) {
+            await dispatch(logoutUser({ refreshToken: tokens.refreshToken }));
+          }
         },
       },
     ]);
@@ -39,14 +52,18 @@ export default function RiderProfileScreen() {
         <View className="bg-white items-center py-6 border-b border-slate-100">
           <View className="relative">
             <Image
-              source={{ uri: "https://images.unsplash.com/photo-1599566150163-29194dcaad36?ixlib=rb-4.0.3&auto=format&fit=crop&w=256&q=80" }}
+              source={{
+                uri: "https://images.unsplash.com/photo-1599566150163-29194dcaad36?ixlib=rb-4.0.3&auto=format&fit=crop&w=256&q=80",
+              }}
               className="w-24 h-24 rounded-full bg-slate-200"
             />
             {/* Online Status Dot */}
             <View className="absolute bottom-0 right-1 border-4 border-white rounded-full bg-green-500 w-6 h-6" />
           </View>
 
-          <Text className="text-2xl font-bold text-slate-900 mt-4">Eric N.</Text>
+          <Text className="text-2xl font-bold text-slate-900 mt-4">
+            Eric N.
+          </Text>
           <Text className="text-slate-500 text-sm mt-1">Rider ID: RD-104</Text>
           <Text className="text-slate-400 text-sm mt-1">078XXXXXXX</Text>
         </View>
@@ -79,7 +96,12 @@ export default function RiderProfileScreen() {
           </Text>
           <View className="bg-white rounded-2xl p-4 flex-row items-center justify-between mb-6 shadow-sm shadow-slate-100/50 border border-slate-100">
             <View className="flex-row items-center">
-              <Ionicons name="bicycle-outline" size={24} color="#64748b" className="mr-3" />
+              <Ionicons
+                name="bicycle-outline"
+                size={24}
+                color="#64748b"
+                className="mr-3"
+              />
               <Text className="text-slate-900 font-bold ml-2">Vehicle</Text>
             </View>
             <Text className="text-slate-500 font-medium">RAF 450R</Text>
@@ -89,16 +111,23 @@ export default function RiderProfileScreen() {
           <Text className="text-slate-500 font-bold text-xs uppercase mb-3 ml-1">
             HELP & ACTIONS
           </Text>
-          
+
           <Pressable className="bg-white rounded-2xl p-4 flex-row items-center justify-between mb-4 shadow-sm shadow-slate-100/50 border border-slate-100">
             <View className="flex-row items-center">
-              <Feather name="headphones" size={20} color="#1C74E9" className="mr-3" />
-              <Text className="text-slate-900 font-bold ml-3">Contact Support</Text>
+              <Feather
+                name="headphones"
+                size={20}
+                color="#1C74E9"
+                className="mr-3"
+              />
+              <Text className="text-slate-900 font-bold ml-3">
+                Contact Support
+              </Text>
             </View>
             <Feather name="chevron-right" size={20} color="#94a3b8" />
           </Pressable>
 
-          <Pressable 
+          <Pressable
             onPress={handleLogout}
             className="bg-white rounded-2xl p-4 flex-row items-center justify-center mb-8 border border-red-100"
           >

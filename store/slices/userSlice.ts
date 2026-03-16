@@ -29,6 +29,16 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface LogoutRequest {
+  refreshToken: string;
+}
+
+export interface LogoutResponse {
+  success: boolean;
+  data: string;
+  message: string;
+}
+
 export interface RegisterResponse {
   success: boolean;
   data: {
@@ -116,6 +126,36 @@ export const loginUser = createAsyncThunk<
   }
 );
 
+// Create an async thunk for logout
+export const logoutUser = createAsyncThunk<
+  LogoutResponse,
+  LogoutRequest,
+  { rejectValue: string }
+>(
+  'user/logout',
+  async (logoutData, { rejectWithValue }) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/logout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(logoutData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return rejectWithValue(data.message || 'Logout failed');
+      }
+
+      return data as LogoutResponse;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Network error occurred');
+    }
+  }
+);
+
 const userSlice = createSlice({
   name: 'user',
   initialState,
@@ -165,6 +205,25 @@ const userSlice = createSlice({
       .addCase(loginUser.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload || 'Failed to login';
+      })
+      // Handle logoutUser async thunk
+      .addCase(logoutUser.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(logoutUser.fulfilled, (state) => {
+        state.isLoading = false;
+        state.user = null;
+        state.tokens = null;
+        state.isAuthenticated = false;
+      })
+      .addCase(logoutUser.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload || 'Failed to logout';
+        // You might still want to log the user out locally even if the server fails
+        state.user = null;
+        state.tokens = null;
+        state.isAuthenticated = false;
       });
   },
 });
