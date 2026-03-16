@@ -1,6 +1,7 @@
 import { View, TextInput, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface ChatInputBarProps {
   onSend: (text: string) => void;
@@ -8,6 +9,7 @@ interface ChatInputBarProps {
 
 export default function ChatInputBar({ onSend }: ChatInputBarProps) {
   const [text, setText] = useState("");
+  const insets = useSafeAreaInsets();
 
   const handleSend = () => {
     const trimmed = text.trim();
@@ -18,7 +20,10 @@ export default function ChatInputBar({ onSend }: ChatInputBarProps) {
   };
 
   return (
-    <View className="flex-row items-center px-4 py-3 bg-white border-t border-slate-100">
+    <View 
+      className="flex-row items-center px-4 pt-3 bg-white border-t border-slate-100"
+      style={{ paddingBottom: Math.max(insets.bottom, 24) }}
+    >
       <TouchableOpacity className="mr-3">
         <Ionicons name="add-circle-outline" size={28} color="#94a3b8" />
       </TouchableOpacity>

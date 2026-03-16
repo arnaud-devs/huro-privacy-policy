@@ -8,10 +8,12 @@ cssInterop(Image, { className: "style" });
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
+import { Provider } from "react-redux";
+import { store } from "../store/store";
 
 export default function RootLayout() {
   return (
-    <>
+    <Provider store={store}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="(rider)" options={{ headerShown: false }} />
@@ -43,6 +45,6 @@ export default function RootLayout() {
         />
       </Stack>
       <StatusBar style="auto" />
-    </>
+    </Provider>
   );
 }

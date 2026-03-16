@@ -1,7 +1,10 @@
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchUserProfile, logoutUser } from "@/store/slices/userSlice";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useEffect } from "react";
+import { Alert, StyleSheet, Text, TouchableOpacity, View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type MenuItem = {
@@ -74,6 +77,32 @@ const SECTIONS: Section[] = [
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
+  const { user, tokens, isAuthenticated } = useAppSelector(
+    (state) => state.user,
+  );
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      dispatch(fetchUserProfile());
+    }
+  }, [dispatch, isAuthenticated]);
+
+  const handleLogout = () => {
+    Alert.alert("Logout", "Are you sure you want to log out?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Logout",
+        style: "destructive",
+        onPress: async () => {
+          if (tokens?.refreshToken) {
+            await dispatch(logoutUser({ refreshToken: tokens.refreshToken }));
+          }
+          router.replace("/login");
+        },
+      },
+    ]);
+  };
 
   return (
     <SafeAreaView style={styles.root} edges={["top"]}>
@@ -89,17 +118,22 @@ export default function ProfileScreen() {
         <View style={{ width: 34 }} />
       </View>
 
-      {/* Avatar card */}
-      <View style={styles.avatarCard}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Avatar card */}
+        <View style={styles.avatarCard}>
         <Image
           source={{
-            uri: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
+            uri:
+              user?.avatarUrl ||
+              "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
           }}
           style={styles.avatar}
           contentFit="cover"
         />
-        <Text style={styles.userName}>Peter oames</Text>
-        <Text style={styles.userEmail}>peter@student.ur.ac.rw</Text>
+        <Text style={styles.userName}>{user?.fullName || "User Name"}</Text>
+        <Text style={styles.userEmail}>
+          {user?.email || "user@example.com"}
+        </Text>
       </View>
 
       {/* Sections */}
@@ -116,7 +150,7 @@ export default function ProfileScreen() {
                 ]}
                 onPress={() =>
                   item.danger
-                    ? router.replace("/login")
+                    ? handleLogout()
                     : item.route && router.push(item.route as any)
                 }
                 activeOpacity={0.7}
@@ -142,21 +176,23 @@ export default function ProfileScreen() {
                   {item.label}
                 </Text>
                 <Ionicons
-                name="chevron-forward"
-                size={18}
-                color={item.danger ? "#ef4444" : "#94a3b8"}
+                  name="chevron-forward"
+                  size={18}
+                  color={item.danger ? "#ef4444" : "#94a3b8"}
                 />
               </TouchableOpacity>
             ))}
           </View>
         </View>
       ))}
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#f8fafc" },
+  scrollContent: { paddingBottom: 40 },
 
   header: {
     flexDirection: "row",
