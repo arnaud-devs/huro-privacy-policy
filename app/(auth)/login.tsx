@@ -1,12 +1,12 @@
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -15,7 +15,7 @@ import AuthInput from "@/components/auth/AuthInput";
 import AuthLogo from "@/components/auth/AuthLogo";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { loginUser, clearError } from "@/store/slices/userSlice";
+import { clearError, loginUser } from "@/store/slices/userSlice";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -36,7 +36,7 @@ export default function LoginScreen() {
 
     if (loginUser.fulfilled.match(resultAction)) {
       const user = resultAction.payload.data.user;
-      
+
       console.log("Logged in user role:", user?.role); // For debugging
 
       // Check the user role and render the dashboard accordingly (case-insensitive)
@@ -54,7 +54,10 @@ export default function LoginScreen() {
         className="flex-1 bg-white"
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1 }}
+          keyboardShouldPersistTaps="handled"
+        >
           <View className="flex-1 px-6 pt-2.5 justify-center">
             <View className="flex-grow justify-center h-full">
               <AuthLogo />
@@ -87,7 +90,7 @@ export default function LoginScreen() {
                 placeholder="Your secure password"
                 value={password}
                 onChangeText={setPassword}
-                secureTextEntry
+                isPassword
                 autoCapitalize="none"
               />
 
@@ -102,7 +105,9 @@ export default function LoginScreen() {
                 Don't have an account?{" "}
               </Text>
               <TouchableOpacity onPress={() => router.push("/sign-up")}>
-                <Text className="text-base font-semibold text-primary">Sign Up</Text>
+                <Text className="text-base font-semibold text-primary">
+                  Sign Up
+                </Text>
               </TouchableOpacity>
             </View>
           </View>

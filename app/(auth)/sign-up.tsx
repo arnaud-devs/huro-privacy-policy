@@ -90,7 +90,7 @@ export default function SignUpScreen() {
             placeholder="Your secure password"
             value={password}
             onChangeText={setPassword}
-            secureTextEntry
+            isPassword
             autoCapitalize="none"
           />
 
