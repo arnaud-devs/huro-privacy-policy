@@ -1,8 +1,8 @@
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { logoutUser } from "@/store/slices/userSlice";
+import { fetchUserProfile, logoutUser } from "@/store/slices/userSlice";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   Image,
@@ -18,7 +18,15 @@ export default function RiderProfileScreen() {
   const router = useRouter();
   const [isOnline, setIsOnline] = useState(true);
   const dispatch = useAppDispatch();
-  const { tokens, isLoading } = useAppSelector((state) => state.user);
+  const { user, tokens, isLoading, isAuthenticated } = useAppSelector(
+    (state) => state.user,
+  );
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      dispatch(fetchUserProfile());
+    }
+  }, [dispatch, isAuthenticated]);
 
   const handleLogout = () => {
     Alert.alert("Logout", "Are you sure you want to log out?", [
@@ -66,7 +74,9 @@ export default function RiderProfileScreen() {
           <View className="relative">
             <Image
               source={{
-                uri: "https://images.unsplash.com/photo-1599566150163-29194dcaad36?ixlib=rb-4.0.3&auto=format&fit=crop&w=256&q=80",
+                uri:
+                  user?.avatarUrl ||
+                  "https://images.unsplash.com/photo-1599566150163-29194dcaad36?ixlib=rb-4.0.3&auto=format&fit=crop&w=256&q=80",
               }}
               className="w-24 h-24 rounded-full bg-slate-200"
             />
@@ -75,10 +85,14 @@ export default function RiderProfileScreen() {
           </View>
 
           <Text className="text-2xl font-bold text-slate-900 mt-4">
-            Eric N.
+            {user?.fullName || "Rider Name"}
           </Text>
-          <Text className="text-slate-500 text-sm mt-1">Rider ID: RD-104</Text>
-          <Text className="text-slate-400 text-sm mt-1">078XXXXXXX</Text>
+          <Text className="text-slate-500 text-sm mt-1">
+            Rider ID: {user?.id?.slice(0, 8).toUpperCase() || "RD-104"}
+          </Text>
+          <Text className="text-slate-400 text-sm mt-1">
+            {user?.phone || user?.email || "No contact info"}
+          </Text>
         </View>
 
         <View className="px-4 py-6">

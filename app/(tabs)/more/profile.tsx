@@ -1,8 +1,9 @@
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { logoutUser } from "@/store/slices/userSlice";
+import { fetchUserProfile, logoutUser } from "@/store/slices/userSlice";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
+import React, { useEffect } from "react";
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -77,7 +78,15 @@ const SECTIONS: Section[] = [
 export default function ProfileScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { tokens } = useAppSelector((state) => state.user);
+  const { user, tokens, isAuthenticated } = useAppSelector(
+    (state) => state.user,
+  );
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      dispatch(fetchUserProfile());
+    }
+  }, [dispatch, isAuthenticated]);
 
   const handleLogout = () => {
     Alert.alert("Logout", "Are you sure you want to log out?", [
@@ -113,13 +122,17 @@ export default function ProfileScreen() {
       <View style={styles.avatarCard}>
         <Image
           source={{
-            uri: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
+            uri:
+              user?.avatarUrl ||
+              "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
           }}
           style={styles.avatar}
           contentFit="cover"
         />
-        <Text style={styles.userName}>Peter oames</Text>
-        <Text style={styles.userEmail}>peter@student.ur.ac.rw</Text>
+        <Text style={styles.userName}>{user?.fullName || "User Name"}</Text>
+        <Text style={styles.userEmail}>
+          {user?.email || "user@example.com"}
+        </Text>
       </View>
 
       {/* Sections */}

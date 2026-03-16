@@ -39,6 +39,12 @@ export interface LogoutResponse {
   message: string;
 }
 
+export interface UserProfileResponse {
+  success: boolean;
+  data: User;
+  message: string;
+}
+
 export interface RegisterResponse {
   success: boolean;
   data: {
@@ -66,10 +72,10 @@ const initialState: UserState = {
 
 const API_BASE_URL = 'https://huzago-backend.onrender.com/api/v1';
 
-// Create an async thunk for registration. 
+// Create an async thunk for registration.
 export const registerUser = createAsyncThunk<
-  RegisterResponse, 
-  RegisterRequest, 
+  RegisterResponse,
+  RegisterRequest,
   { rejectValue: string }
 >(
   'user/register',
@@ -98,8 +104,8 @@ export const registerUser = createAsyncThunk<
 
 // Create an async thunk for login
 export const loginUser = createAsyncThunk<
-  RegisterResponse, 
-  LoginRequest, 
+  RegisterResponse,
+  LoginRequest,
   { rejectValue: string }
 >(
   'user/login',
@@ -150,6 +156,43 @@ export const logoutUser = createAsyncThunk<
       }
 
       return data as LogoutResponse;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Network error occurred');
+    }
+  }
+);
+
+// Create an async thunk to fetch the logged-in user's profile
+export const fetchUserProfile = createAsyncThunk<
+  UserProfileResponse,
+  void,
+  { state: { user: UserState }, rejectValue: string }
+>(
+  'user/fetchProfile',
+  async (_, { getState, rejectWithValue }) => {
+    try {
+      const state = getState();
+      const accessToken = state.user.tokens?.accessToken;
+
+      if (!accessToken) {
+        return rejectWithValue('No access token found');
+      }
+
+      const response = await fetch(`${API_BASE_URL.replace('/v1', '')}/users/me`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return rejectWithValue(data.message || 'Failed to fetch user profile');
+      }
+
+      return data as UserProfileResponse;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Network error occurred');
     }
@@ -220,10 +263,19 @@ const userSlice = createSlice({
       .addCase(logoutUser.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload || 'Failed to logout';
-        // You might still want to log the user out locally even if the server fails
         state.user = null;
         state.tokens = null;
         state.isAuthenticated = false;
+      })
+      // Handle fetchUserProfile
+      .addCase(fetchUserProfile.pending, (state) => {
+        state.error = null;
+      })
+      .addCase(fetchUserProfile.fulfilled, (state, action) => {
+        state.user = action.payload.data;
+      })
+      .addCase(fetchUserProfile.rejected, (state, action) => {
+        state.error = action.payload || 'Failed to fetch user profile';
       });
   },
 });
