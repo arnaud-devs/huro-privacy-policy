@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchCart, adjustQuantity, clearCart, updateCartItem, removeCartItem } from "@/store/slices/cartSlice";
+import { fetchProducts } from "@/store/slices/productsSlice";
 
 type BatchSlot = "12pm" | "3pm";
 
@@ -33,10 +34,12 @@ export default function CartScreen() {
   const { items, subtotal, itemCount, isLoading, isClearing, error } = useAppSelector(
     (state) => state.cart
   );
+  const allProducts = useAppSelector((state) => state.products.products);
   const [slot, setSlot] = useState<BatchSlot>("12pm");
 
   useEffect(() => {
     dispatch(fetchCart());
+    dispatch(fetchProducts({}));
   }, [dispatch]);
 
   const total = (subtotal ?? 0) + DELIVERY_FEE;
@@ -134,7 +137,12 @@ export default function CartScreen() {
 
           <View style={styles.card}>
             {items.map((item, i) => {
-              const imageUri = item.product?.imageUrls?.[0];
+              const fullProduct = allProducts.find((p) => p.id === item.productId);
+              const name = fullProduct?.name ?? item.product?.name ?? "Unknown product";
+              const imageUri = fullProduct?.imageUrls?.[0] ?? item.product?.imageUrls?.[0];
+              const price = item.unitPrice > 0
+                ? item.unitPrice
+                : parseFloat(fullProduct?.price ?? "0");
               return (
                 <View key={item.productId}>
                   {i > 0 && <View style={styles.divider} />}
@@ -146,10 +154,10 @@ export default function CartScreen() {
                     />
                     <View style={styles.itemInfo}>
                       <Text style={styles.itemName} numberOfLines={1}>
-                        {item.product?.name ?? "Unknown product"}
+                        {name}
                       </Text>
                       <Text style={styles.itemPrice}>
-                        RWF {fmt(item.unitPrice)}
+                        RWF {fmt(price)}
                       </Text>
                     </View>
                     <View style={styles.stepper}>

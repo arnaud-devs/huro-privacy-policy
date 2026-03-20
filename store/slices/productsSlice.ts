@@ -4,21 +4,26 @@ const API_BASE_URL = 'https://huzago-backend.onrender.com/api/v1';
 
 export interface ProductSeller {
   id: string;
-  name: string;
-  isVerified: boolean;
+  sellerName: string;
+  sellerPhone: string | null;
+  pickupLocationName: string;
+  pickupLocationUrl: string;
 }
 
 export interface Product {
   id: string;
   name: string;
-  price: number;
-  imageUrl: string;
+  price: string;
+  imageUrls: string[];
   description: string;
   stockQuantity: number;
   categoryId: string;
+  totalOrders: number;
+  createdAt: string;
   seller: ProductSeller;
-  originalPrice?: number;
+  hasPickupLocation: boolean;
   promotionPrice?: number;
+  originalPrice?: number;
 }
 
 export interface FetchProductsParams {

@@ -54,7 +54,8 @@ export default function ProductGrid({ categoryId }: Props) {
 
       <View className="flex-row flex-wrap justify-between">
         {products.map((product) => {
-          const displayPrice = product.promotionPrice ?? product.price;
+          const basePrice = parseFloat(product.price);
+          const displayPrice = product.promotionPrice ?? basePrice;
 
           return (
             <View
@@ -71,7 +72,7 @@ export default function ProductGrid({ categoryId }: Props) {
               >
                 <View className="relative">
                   <Image
-                    source={{ uri: product.imageUrl }}
+                    source={{ uri: product.imageUrls?.[0] }}
                     className="w-full h-[140px] rounded-2xl bg-slate-100"
                     contentFit="cover"
                   />

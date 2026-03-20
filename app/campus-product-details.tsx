@@ -50,10 +50,11 @@ export default function CampusProductDetailsScreen() {
     );
   }
 
-  const displayPrice = product.promotionPrice ?? product.price;
+  const basePrice = parseFloat(product.price);
+  const displayPrice = product.promotionPrice ?? basePrice;
 
   async function handleShare() {
-    await Share.share({ message: `Check out ${product.name} for RWF ${displayPrice.toLocaleString()} on HuzaGo!` });
+    await Share.share({ message: `Check out ${product!.name} for RWF ${displayPrice.toLocaleString()} on HuzaGo!` });
   }
 
   return (
@@ -80,7 +81,7 @@ export default function CampusProductDetailsScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 110 }}>
         {/* Hero image */}
         <Image
-          source={{ uri: product.imageUrl }}
+          source={{ uri: product.imageUrls?.[0] }}
           style={styles.heroImage}
           contentFit="cover"
         />
@@ -114,9 +115,9 @@ export default function CampusProductDetailsScreen() {
               <Ionicons name="storefront-outline" size={20} color="#1C74E9" />
             </View>
             <View className="flex-1 ml-3">
-              <Text className="text-sm font-bold text-slate-800">{product.seller.name}</Text>
+              <Text className="text-sm font-bold text-slate-800">{product.seller.sellerName}</Text>
               <Text className="text-xs text-slate-500">
-                {product.seller.isVerified ? "Verified Campus Seller" : "Campus Seller"}
+                {product.hasPickupLocation ? "Has Pickup Location" : "Campus Seller"}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
