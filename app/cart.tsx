@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchCart, adjustQuantity } from "@/store/slices/cartSlice";
+import { fetchCart, adjustQuantity, clearCart, updateCartItem, removeCartItem } from "@/store/slices/cartSlice";
 
 type BatchSlot = "12pm" | "3pm";
 
@@ -23,14 +23,14 @@ const DELIVERY_SLOTS = [
 
 const DELIVERY_FEE = 1000;
 
-function fmt(n: number) {
-  return n.toLocaleString();
+function fmt(n: number | undefined | null) {
+  return (n ?? 0).toLocaleString();
 }
 
 export default function CartScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { items, subtotal, itemCount, isLoading, error } = useAppSelector(
+  const { items, subtotal, itemCount, isLoading, isClearing, error } = useAppSelector(
     (state) => state.cart
   );
   const [slot, setSlot] = useState<BatchSlot>("12pm");
@@ -39,7 +39,17 @@ export default function CartScreen() {
     dispatch(fetchCart());
   }, [dispatch]);
 
-  const total = subtotal + DELIVERY_FEE;
+  const total = (subtotal ?? 0) + DELIVERY_FEE;
+
+  function handleStepQty(productId: string, currentQty: number, delta: number) {
+    const newQty = currentQty + delta;
+    if (newQty <= 0) {
+      dispatch(removeCartItem(productId));
+    } else {
+      dispatch(adjustQuantity({ productId, delta }));
+      dispatch(updateCartItem({ productId, quantity: newQty }));
+    }
+  }
 
   if (isLoading) {
     return (
@@ -89,7 +99,21 @@ export default function CartScreen() {
           <Ionicons name="arrow-back" size={22} color="#0f172a" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Shopping Cart</Text>
-        <View style={{ width: 34 }} />
+        {items.length > 0 ? (
+          <TouchableOpacity
+            onPress={() => dispatch(clearCart())}
+            disabled={isClearing}
+            style={styles.clearBtn}
+          >
+            {isClearing ? (
+              <ActivityIndicator size="small" color="#ef4444" />
+            ) : (
+              <Text style={styles.clearBtnText}>Clear</Text>
+            )}
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 44 }} />
+        )}
       </View>
 
       {items.length === 0 ? (
@@ -110,7 +134,7 @@ export default function CartScreen() {
 
           <View style={styles.card}>
             {items.map((item, i) => {
-              const imageUri = item.product.imageUrls?.[0];
+              const imageUri = item.product?.imageUrls?.[0];
               return (
                 <View key={item.productId}>
                   {i > 0 && <View style={styles.divider} />}
@@ -122,7 +146,7 @@ export default function CartScreen() {
                     />
                     <View style={styles.itemInfo}>
                       <Text style={styles.itemName} numberOfLines={1}>
-                        {item.product.name}
+                        {item.product?.name ?? "Unknown product"}
                       </Text>
                       <Text style={styles.itemPrice}>
                         RWF {fmt(item.unitPrice)}
@@ -130,22 +154,20 @@ export default function CartScreen() {
                     </View>
                     <View style={styles.stepper}>
                       <TouchableOpacity
-                        onPress={() =>
-                          dispatch(
-                            adjustQuantity({ productId: item.productId, delta: -1 })
-                          )
-                        }
+                        onPress={() => dispatch(removeCartItem(item.productId))}
+                        style={styles.trashBtn}
+                      >
+                        <Ionicons name="trash-outline" size={15} color="#ef4444" />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => handleStepQty(item.productId, item.quantity, -1)}
                         style={styles.stepBtn}
                       >
                         <Ionicons name="remove" size={14} color="#0f172a" />
                       </TouchableOpacity>
                       <Text style={styles.stepCount}>{item.quantity}</Text>
                       <TouchableOpacity
-                        onPress={() =>
-                          dispatch(
-                            adjustQuantity({ productId: item.productId, delta: 1 })
-                          )
-                        }
+                        onPress={() => handleStepQty(item.productId, item.quantity, 1)}
                         style={styles.stepBtn}
                       >
                         <Ionicons name="add" size={14} color="#0f172a" />
@@ -233,8 +255,8 @@ export default function CartScreen() {
                 pathname: "/order-checkout",
                 params: {
                   subtotal: String(subtotal),
-                  itemName: items[0]?.product.name ?? "",
-                  itemImage: items[0]?.product.imageUrls?.[0] ?? "",
+                  itemName: items[0]?.product?.name ?? "",
+                  itemImage: items[0]?.product?.imageUrls?.[0] ?? "",
                 },
               })
             }
@@ -275,6 +297,8 @@ const styles = StyleSheet.create({
     borderBottomColor: "#f1f5f9",
   },
   backBtn: { width: 34, height: 34, justifyContent: "center" },
+  clearBtn: { paddingHorizontal: 10, paddingVertical: 6 },
+  clearBtnText: { fontSize: 14, fontWeight: "600", color: "#ef4444" },
   headerTitle: { fontSize: 18, fontWeight: "700", color: "#0f172a" },
 
   scroll: { padding: 16 },
@@ -339,6 +363,15 @@ const styles = StyleSheet.create({
 
   // Stepper
   stepper: { flexDirection: "row", alignItems: "center", gap: 8 },
+  trashBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#fef2f2",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 2,
+  },
   stepBtn: {
     width: 28,
     height: 28,

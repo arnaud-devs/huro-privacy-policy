@@ -3,6 +3,8 @@ import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   ScrollView,
   Share,
   StyleSheet,
@@ -11,15 +13,31 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useAppSelector } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { addToCart } from "@/store/slices/cartSlice";
 
 export default function CampusProductDetailsScreen() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const { id } = useLocalSearchParams<{ id: string }>();
   const product = useAppSelector((state) =>
     state.products.products.find((p) => p.id === id)
   );
+  const isAdding = useAppSelector((state) => state.cart.isAdding);
   const [quantity, setQuantity] = useState(1);
+
+  async function handleAddToCart() {
+    if (!product) return;
+    const result = await dispatch(addToCart({ productId: product.id, quantity }));
+    if (addToCart.fulfilled.match(result)) {
+      Alert.alert("Added to cart", `${product.name} × ${quantity} added successfully.`, [
+        { text: "View Cart", onPress: () => router.push("/cart") },
+        { text: "Continue Shopping", style: "cancel" },
+      ]);
+    } else {
+      Alert.alert("Error", (result.payload as string) || "Failed to add item to cart.");
+    }
+  }
 
   if (!product) {
     return (
@@ -152,9 +170,21 @@ export default function CampusProductDetailsScreen() {
         </View>
 
         {/* Add to Cart */}
-        <TouchableOpacity style={styles.cartBtn}>
-          <Ionicons name="cart-outline" size={20} color="white" />
-          <Text style={styles.cartBtnText}>Add to Cart</Text>
+        <TouchableOpacity
+          style={[styles.cartBtn, isAdding && { opacity: 0.7 }]}
+          onPress={handleAddToCart}
+          disabled={isAdding || product.stockQuantity === 0}
+        >
+          {isAdding ? (
+            <ActivityIndicator size="small" color="white" />
+          ) : (
+            <>
+              <Ionicons name="cart-outline" size={20} color="white" />
+              <Text style={styles.cartBtnText}>
+                {product.stockQuantity === 0 ? "Out of Stock" : "Add to Cart"}
+              </Text>
+            </>
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
