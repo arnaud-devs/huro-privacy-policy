@@ -1,10 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { useEffect } from "react";
-import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Animated, Text, TouchableOpacity, View } from "react-native";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchProducts } from "@/store/slices/productsSlice";
+import { addToCart } from "@/store/slices/cartSlice";
 
 interface Props {
   categoryId?: string;
@@ -14,10 +15,28 @@ export default function ProductGrid({ categoryId }: Props) {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { products, isLoading, error } = useAppSelector((state) => state.products);
+  const [toastId, setToastId] = useState<string | null>(null);
+  const toastOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     dispatch(fetchProducts({ categoryId, sortBy: "newest" }));
   }, [dispatch, categoryId]);
+
+  function showToast(productId: string) {
+    setToastId(productId);
+    Animated.sequence([
+      Animated.timing(toastOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.delay(1400),
+      Animated.timing(toastOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+    ]).start(() => setToastId(null));
+  }
+
+  async function handleAddToCart(productId: string) {
+    const result = await dispatch(addToCart({ productId, quantity: 1 }));
+    if (addToCart.fulfilled.match(result)) {
+      showToast(productId);
+    }
+  }
 
   if (isLoading) {
     return (
@@ -103,10 +122,37 @@ export default function ProductGrid({ categoryId }: Props) {
                 </View>
               </TouchableOpacity>
 
-              <TouchableOpacity className="bg-primary flex-row items-center justify-center py-2.5 rounded-xl mt-auto">
+              <TouchableOpacity
+                className="bg-primary flex-row items-center justify-center py-2.5 rounded-xl mt-auto"
+                onPress={() => handleAddToCart(product.id)}
+              >
                 <Ionicons name="cart-outline" size={16} color="white" />
                 <Text className="text-white font-bold text-xs ml-1.5">Add to cart</Text>
               </TouchableOpacity>
+
+              {toastId === product.id && (
+                <Animated.View
+                  style={{
+                    opacity: toastOpacity,
+                    position: "absolute",
+                    bottom: 48,
+                    left: 8,
+                    right: 8,
+                    backgroundColor: "#0f172a",
+                    borderRadius: 10,
+                    paddingVertical: 7,
+                    paddingHorizontal: 10,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <Ionicons name="checkmark-circle" size={14} color="#4ade80" />
+                  <Text style={{ color: "white", fontSize: 11, fontWeight: "600" }}>
+                    Added to cart!
+                  </Text>
+                </Animated.View>
+              )}
             </View>
           );
         })}

@@ -1,97 +1,272 @@
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { updateProfile } from "@/store/slices/userSlice";
+import { placeOrder, clearPendingOrder } from "@/store/slices/ordersSlice";
 
 export default function ProfileSetupScreen() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
+  const { isLoading } = useAppSelector((state) => state.user);
+  const pendingOrder = useAppSelector((state) => state.orders.pendingOrder);
   const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
+
+  async function pickAvatar() {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission required", "Please allow access to your photo library.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setAvatarUri(result.assets[0].uri);
+    }
+  }
+
+  async function handleComplete() {
+    if (!fullName.trim() || !phone.trim()) {
+      Alert.alert("Missing details", "Please enter your full name and phone number.");
+      return;
+    }
+
+    const result = await dispatch(
+      updateProfile({ fullName: fullName.trim(), phone: phone.trim(), avatarUri: avatarUri ?? undefined })
+    );
+
+    if (updateProfile.fulfilled.match(result)) {
+      if (pendingOrder) {
+        const orderResult = await dispatch(placeOrder(pendingOrder));
+        dispatch(clearPendingOrder());
+        if (placeOrder.fulfilled.match(orderResult)) {
+          router.replace("/orders/order-status");
+        } else {
+          const msg = (orderResult.payload as string) || "Failed to place order.";
+          Alert.alert("Order Failed", msg);
+          router.replace("/(tabs)");
+        }
+      } else {
+        router.replace("/(tabs)");
+      }
+    } else {
+      Alert.alert("Error", (result.payload as string) || "Failed to update profile.");
+    }
+  }
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView style={styles.root}>
       <Stack.Screen options={{ headerShown: false }} />
       <KeyboardAvoidingView
-        className="flex-1 bg-white"
+        style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        {/* Header */}
-        <View className="flex-row items-center justify-between px-5 py-4">
-          <TouchableOpacity onPress={() => router.back()} className="p-1 -ml-1">
-            <Ionicons name="arrow-back" size={24} color="#0F172A" />
-          </TouchableOpacity>
-          <Text className="text-base font-bold text-slate-900">Create Account</Text>
-          <View className="w-8" />
-        </View>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+              <Ionicons name="arrow-back" size={24} color="#0F172A" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Complete Profile</Text>
+            <View style={{ width: 34 }} />
+          </View>
 
-        <View className="flex-1 px-6 pt-6">
-          <Text className="text-3xl font-bold text-slate-900 mb-2">
-            Tell us about yourself
-          </Text>
-          <Text className="text-base text-slate-500 mb-8">
-            Complete your profile to join the community.
-          </Text>
+          <View style={styles.body}>
+            <Text style={styles.title}>Tell us about yourself</Text>
+            <Text style={styles.subtitle}>
+              Set your name and a profile photo to get started.
+            </Text>
 
-          {/* Full Name Input */}
-          <View className="mb-6">
-            <Text className="text-sm font-semibold text-slate-900 mb-2">Full Name</Text>
-            <View className="flex-row items-center border border-slate-200 rounded-2xl px-4 h-14 bg-slate-50">
-              <Ionicons name="person-outline" size={20} color="#8D94A2" className="mr-3" />
+            {/* Avatar picker */}
+            <TouchableOpacity style={styles.avatarWrap} onPress={pickAvatar}>
+              {avatarUri ? (
+                <Image source={{ uri: avatarUri }} style={styles.avatar} contentFit="cover" />
+              ) : (
+                <View style={styles.avatarPlaceholder}>
+                  <Ionicons name="camera-outline" size={28} color="#94a3b8" />
+                  <Text style={styles.avatarHint}>Add photo</Text>
+                </View>
+              )}
+              <View style={styles.cameraCircle}>
+                <Ionicons name="camera" size={14} color="white" />
+              </View>
+            </TouchableOpacity>
+
+            {/* Full Name */}
+            <Text style={styles.label}>Full Name</Text>
+            <View style={styles.inputRow}>
+              <Ionicons name="person-outline" size={20} color="#8D94A2" />
               <TextInput
-                className="flex-1 text-base text-slate-900"
+                style={styles.input}
                 placeholder="Enter your full name"
                 placeholderTextColor="#A0A5B1"
                 value={fullName}
                 onChangeText={setFullName}
                 autoCapitalize="words"
+                returnKeyType="next"
               />
             </View>
-          </View>
 
-          {/* Campus Selection */}
-          <View className="mb-6">
-            <Text className="text-sm font-semibold text-slate-900 mb-2">Select Your Campus</Text>
-            <TouchableOpacity className="flex-row items-center justify-between border border-slate-200 rounded-2xl px-4 h-14 bg-slate-50">
-              <View className="flex-row items-center">
-                <Ionicons name="school-outline" size={20} color="#8D94A2" className="mr-3" />
-                <Text className="text-base text-slate-900">Choose your campus</Text>
-              </View>
-              <Ionicons name="chevron-down" size={20} color="#64748B" />
-            </TouchableOpacity>
-          </View>
+            {/* Phone Number */}
+            <Text style={styles.label}>Phone Number</Text>
+            <View style={styles.inputRow}>
+              <Ionicons name="call-outline" size={20} color="#8D94A2" />
+              <TextInput
+                style={styles.input}
+                placeholder="e.g. 0788123456"
+                placeholderTextColor="#A0A5B1"
+                value={phone}
+                onChangeText={setPhone}
+                keyboardType="phone-pad"
+                returnKeyType="done"
+                onSubmitEditing={handleComplete}
+              />
+            </View>
 
-          {/* Terms Text */}
-          <View className="mt-4 items-center">
-            <Text className="text-sm text-slate-500 text-center leading-5">
-              By clicking "Complete Sign Up", you agree to our{"\n"}
-              <Text className="text-primary">Terms of Service</Text> and{" "}
-              <Text className="text-primary">Privacy Policy</Text>.
+            <Text style={styles.terms}>
+              By continuing you agree to our{" "}
+              <Text style={styles.termsLink}>Terms of Service</Text> and{" "}
+              <Text style={styles.termsLink}>Privacy Policy</Text>.
             </Text>
           </View>
+        </ScrollView>
 
-          <View className="flex-1" />
-
-          {/* Complete Button */}
+        {/* CTA */}
+        <View style={styles.footer}>
           <TouchableOpacity
-            className="bg-primary rounded-3xl h-[52px] justify-center items-center mb-4 shadow-md shadow-primary/20"
-            onPress={() => router.push("/account-created")}
+            style={[styles.btn, isLoading && styles.btnDisabled]}
+            onPress={handleComplete}
+            disabled={isLoading}
           >
-            <Text className="text-white text-base font-semibold">Complete Sign Up</Text>
-          </TouchableOpacity>
-
-          {/* Skip Link */}
-          <TouchableOpacity className="items-center py-3 mb-5">
-            <Text className="text-base text-slate-500 font-medium">Skip for now</Text>
+            {isLoading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text style={styles.btnText}>Complete Profile</Text>
+            )}
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: "white" },
+  scroll: { flexGrow: 1 },
+
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+  },
+  backBtn: { width: 34, height: 34, justifyContent: "center" },
+  headerTitle: { fontSize: 16, fontWeight: "700", color: "#0f172a" },
+
+  body: { paddingHorizontal: 24, paddingTop: 12, flex: 1 },
+
+  title: { fontSize: 28, fontWeight: "700", color: "#0f172a", marginBottom: 8 },
+  subtitle: { fontSize: 15, color: "#64748b", marginBottom: 36, lineHeight: 22 },
+
+  // Avatar
+  avatarWrap: {
+    alignSelf: "center",
+    marginBottom: 36,
+    position: "relative",
+  },
+  avatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "#f1f5f9",
+  },
+  avatarPlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "#f1f5f9",
+    borderWidth: 2,
+    borderColor: "#e2e8f0",
+    borderStyle: "dashed",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarHint: { fontSize: 11, color: "#94a3b8", marginTop: 4 },
+  cameraCircle: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "#1C74E9",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "white",
+  },
+
+  // Input
+  label: { fontSize: 13, fontWeight: "600", color: "#0f172a", marginBottom: 8 },
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    height: 54,
+    backgroundColor: "#f8fafc",
+    marginBottom: 32,
+  },
+  input: { flex: 1, fontSize: 15, color: "#0f172a" },
+
+  terms: { fontSize: 13, color: "#94a3b8", textAlign: "center", lineHeight: 20 },
+  termsLink: { color: "#1C74E9" },
+
+  // Footer
+  footer: {
+    paddingHorizontal: 24,
+    paddingBottom: 32,
+    paddingTop: 12,
+    backgroundColor: "white",
+    borderTopWidth: 1,
+    borderTopColor: "#f1f5f9",
+  },
+  btn: {
+    backgroundColor: "#1C74E9",
+    borderRadius: 16,
+    height: 54,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  btnDisabled: { opacity: 0.6 },
+  btnText: { color: "white", fontSize: 16, fontWeight: "700" },
+});

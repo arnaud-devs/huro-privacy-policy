@@ -14,18 +14,18 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchCart, adjustQuantity, clearCart, updateCartItem, removeCartItem } from "@/store/slices/cartSlice";
 import { fetchProducts } from "@/store/slices/productsSlice";
-
-type BatchSlot = "12pm" | "3pm";
-
-const DELIVERY_SLOTS = [
-  { id: "12pm", time: "12:00 PM", label: "Morning Slot" },
-  { id: "3pm", time: "3:00 PM", label: "Afternoon Slot" },
-];
+import { fetchOpenBatches, Batch } from "@/store/slices/batchesSlice";
+import { fetchDeliveryZones, DeliveryZone } from "@/store/slices/deliveryZonesSlice";
 
 const DELIVERY_FEE = 1000;
 
 function fmt(n: number | undefined | null) {
   return (n ?? 0).toLocaleString();
+}
+
+function formatScheduledAt(iso: string) {
+  const date = new Date(iso);
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
 export default function CartScreen() {
@@ -35,12 +35,32 @@ export default function CartScreen() {
     (state) => state.cart
   );
   const allProducts = useAppSelector((state) => state.products.products);
-  const [slot, setSlot] = useState<BatchSlot>("12pm");
+  const { batches, isLoading: batchesLoading } = useAppSelector((state) => state.batches);
+  const { zones, isLoading: zonesLoading } = useAppSelector((state) => state.deliveryZones);
+  const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null);
+  const [selectedZone, setSelectedZone] = useState<DeliveryZone | null>(null);
+  const [showZonePicker, setShowZonePicker] = useState(false);
 
   useEffect(() => {
     dispatch(fetchCart());
     dispatch(fetchProducts({}));
+    dispatch(fetchOpenBatches());
+    dispatch(fetchDeliveryZones());
   }, [dispatch]);
+
+  // Auto-select first batch when batches load
+  useEffect(() => {
+    if (batches.length > 0 && !selectedBatch) {
+      setSelectedBatch(batches[0]);
+    }
+  }, [batches]);
+
+  // Auto-select first zone when zones load
+  useEffect(() => {
+    if (zones.length > 0 && !selectedZone) {
+      setSelectedZone(zones[0]);
+    }
+  }, [zones]);
 
   const total = (subtotal ?? 0) + DELIVERY_FEE;
 
@@ -189,53 +209,136 @@ export default function CartScreen() {
 
           {/* ── Delivery Batch ── */}
           <Text style={styles.sectionTitleSpaced}>Delivery Batch</Text>
-          <View style={styles.slotRow}>
-            {DELIVERY_SLOTS.map((s) => {
-              const active = slot === s.id;
-              return (
-                <TouchableOpacity
-                  key={s.id}
-                  onPress={() => setSlot(s.id as BatchSlot)}
-                  style={[styles.slotCard, active && styles.slotCardActive]}
-                >
-                  <View style={styles.slotTopRow}>
-                    <Text
-                      style={[styles.slotTime, active && styles.slotTimeActive]}
-                    >
-                      {s.time}
-                    </Text>
-                    {active && (
-                      <Ionicons
-                        name="checkmark-circle"
-                        size={18}
-                        color="#1C74E9"
-                      />
-                    )}
-                  </View>
-                  <Text
-                    style={[styles.slotLabel, active && styles.slotLabelActive]}
+          {batchesLoading ? (
+            <ActivityIndicator size="small" color="#1C74E9" style={{ marginVertical: 12 }} />
+          ) : batches.length === 0 ? (
+            <View style={styles.noBatchCard}>
+              <Ionicons name="time-outline" size={20} color="#94a3b8" />
+              <Text style={styles.noBatchText}>No open batches available right now</Text>
+            </View>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 12, paddingRight: 4 }}
+            >
+              {batches.map((batch) => {
+                const active = selectedBatch?.id === batch.id;
+                const isFull = batch.slotsRemaining === 0;
+                return (
+                  <TouchableOpacity
+                    key={batch.id}
+                    onPress={() => !isFull && setSelectedBatch(batch)}
+                    disabled={isFull}
+                    style={[
+                      styles.slotCard,
+                      active && styles.slotCardActive,
+                      isFull && styles.slotCardDisabled,
+                    ]}
                   >
-                    {s.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+                    <View style={styles.slotTopRow}>
+                      <Text style={[styles.slotTime, active && styles.slotTimeActive]}>
+                        {batch.slotLabel}
+                      </Text>
+                      {active && (
+                        <Ionicons name="checkmark-circle" size={18} color="#1C74E9" />
+                      )}
+                    </View>
+                    <Text style={[styles.slotLabel, active && styles.slotLabelActive]}>
+                      {formatScheduledAt(batch.scheduledAt)}
+                    </Text>
+                    <View style={styles.fillRow}>
+                      <View style={styles.fillBarBg}>
+                        <View
+                          style={[
+                            styles.fillBarFg,
+                            {
+                              width: `${batch.fillPercent}%` as any,
+                              backgroundColor: batch.fillPercent >= 80 ? "#ef4444" : "#1C74E9",
+                            },
+                          ]}
+                        />
+                      </View>
+                      <Text style={styles.slotsText}>
+                        {isFull ? "Full" : `${batch.slotsRemaining} left`}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          )}
 
           {/* ── Pickup Point ── */}
           <Text style={styles.sectionTitleSpaced}>Pickup Point</Text>
-          <TouchableOpacity style={[styles.card, styles.pickupRow]}>
-            <View style={styles.pinCircle}>
-              <Ionicons name="location-outline" size={22} color="#1C74E9" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.pickupName}>Main Gate</Text>
-              <Text style={styles.pickupAddr}>
-                University Avenue, South Entrance
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
-          </TouchableOpacity>
+          {zonesLoading ? (
+            <ActivityIndicator size="small" color="#1C74E9" style={{ marginVertical: 12 }} />
+          ) : (
+            <>
+              <TouchableOpacity
+                style={[styles.card, styles.pickupRow]}
+                onPress={() => setShowZonePicker((v) => !v)}
+              >
+                <View style={styles.pinCircle}>
+                  <Ionicons name="location-outline" size={22} color="#1C74E9" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.pickupName}>
+                    {selectedZone ? selectedZone.name : "Select pickup point"}
+                  </Text>
+                  {selectedZone && (
+                    <Text style={styles.pickupAddr}>
+                      {selectedZone.pickupLabel} · RWF {selectedZone.deliveryFee.toLocaleString()} fee
+                    </Text>
+                  )}
+                </View>
+                <Ionicons
+                  name={showZonePicker ? "chevron-up" : "chevron-down"}
+                  size={20}
+                  color="#94a3b8"
+                />
+              </TouchableOpacity>
+
+              {showZonePicker && (
+                <View style={styles.zoneList}>
+                  {zones.map((zone, i) => {
+                    const active = selectedZone?.id === zone.id;
+                    return (
+                      <TouchableOpacity
+                        key={zone.id}
+                        style={[
+                          styles.zoneItem,
+                          i < zones.length - 1 && styles.zoneItemBorder,
+                          active && styles.zoneItemActive,
+                        ]}
+                        onPress={() => {
+                          setSelectedZone(zone);
+                          setShowZonePicker(false);
+                        }}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.zoneName, active && styles.zoneNameActive]}>
+                            {zone.name}
+                          </Text>
+                          <Text style={styles.zoneLabel}>
+                            {zone.pickupLabel} · {zone.type}
+                          </Text>
+                        </View>
+                        <View style={styles.zoneFeeBox}>
+                          <Text style={styles.zoneFee}>
+                            RWF {zone.deliveryFee.toLocaleString()}
+                          </Text>
+                        </View>
+                        {active && (
+                          <Ionicons name="checkmark-circle" size={18} color="#1C74E9" style={{ marginLeft: 8 }} />
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
+            </>
+          )}
 
           {/* ── Order Summary ── */}
           <View style={styles.summaryCard}>
@@ -263,8 +366,9 @@ export default function CartScreen() {
                 pathname: "/order-checkout",
                 params: {
                   subtotal: String(subtotal),
-                  itemName: items[0]?.product?.name ?? "",
-                  itemImage: items[0]?.product?.imageUrls?.[0] ?? "",
+                  batchId: selectedBatch?.id ?? "",
+                  deliveryZoneId: selectedZone?.id ?? "",
+                  deliveryFee: String(selectedZone?.deliveryFee ?? DELIVERY_FEE),
                 },
               })
             }
@@ -490,4 +594,63 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   termsLink: { color: "#1C74E9" },
+
+  // Zone picker
+  zoneList: {
+    backgroundColor: "white",
+    borderRadius: 14,
+    marginTop: 8,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  zoneItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+  },
+  zoneItemBorder: { borderBottomWidth: 1, borderBottomColor: "#f1f5f9" },
+  zoneItemActive: { backgroundColor: "#eff6ff" },
+  zoneName: { fontSize: 14, fontWeight: "600", color: "#0f172a", marginBottom: 2 },
+  zoneNameActive: { color: "#1C74E9" },
+  zoneLabel: { fontSize: 12, color: "#64748b" },
+  zoneFeeBox: {
+    backgroundColor: "#f1f5f9",
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  zoneFee: { fontSize: 12, fontWeight: "700", color: "#0f172a" },
+
+  // No batches
+  noBatchCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#f8fafc",
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+  },
+  noBatchText: { fontSize: 13, color: "#94a3b8" },
+
+  // Batch slot disabled
+  slotCardDisabled: { opacity: 0.45 },
+
+  // Fill bar
+  fillRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8 },
+  fillBarBg: {
+    flex: 1,
+    height: 4,
+    backgroundColor: "#e2e8f0",
+    borderRadius: 4,
+    overflow: "hidden",
+  },
+  fillBarFg: { height: 4, borderRadius: 4 },
+  slotsText: { fontSize: 10, fontWeight: "600", color: "#64748b" },
 });

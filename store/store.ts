@@ -3,6 +3,9 @@ import userReducer from './slices/userSlice';
 import categoriesReducer from './slices/categoriesSlice';
 import productsReducer from './slices/productsSlice';
 import cartReducer from './slices/cartSlice';
+import batchesReducer from './slices/batchesSlice';
+import deliveryZonesReducer from './slices/deliveryZonesSlice';
+import ordersReducer from './slices/ordersSlice';
 
 export const store = configureStore({
   reducer: {
@@ -10,6 +13,9 @@ export const store = configureStore({
     categories: categoriesReducer,
     products: productsReducer,
     cart: cartReducer,
+    batches: batchesReducer,
+    deliveryZones: deliveryZonesReducer,
+    orders: ordersReducer,
   },
 });
 

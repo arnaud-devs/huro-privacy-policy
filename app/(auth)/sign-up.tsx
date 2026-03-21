@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
   Text,
   TouchableOpacity,
   View,
@@ -47,7 +48,11 @@ export default function SignUpScreen() {
         className="flex-1 bg-white"
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
         <View className="flex-1 px-6 pt-2.5 justify-center">
           <View className="flex-grow justify-center h-full">
             <AuthLogo />
@@ -109,6 +114,7 @@ export default function SignUpScreen() {
             </TouchableOpacity>
           </View>
         </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

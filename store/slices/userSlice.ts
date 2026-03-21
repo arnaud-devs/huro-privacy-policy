@@ -162,6 +162,46 @@ export const logoutUser = createAsyncThunk<
   }
 );
 
+export const updateProfile = createAsyncThunk<
+  UserProfileResponse,
+  { fullName: string; phone?: string; avatarUri?: string },
+  { state: { user: UserState }; rejectValue: string }
+>(
+  'user/updateProfile',
+  async ({ fullName, phone, avatarUri }, { getState, rejectWithValue }) => {
+    try {
+      const accessToken = getState().user.tokens?.accessToken;
+      if (!accessToken) return rejectWithValue('Not authenticated');
+
+      const form = new FormData();
+      form.append('fullName', fullName);
+      if (phone) form.append('phone', phone);
+
+      if (avatarUri) {
+        const filename = avatarUri.split('/').pop() ?? 'avatar.jpg';
+        const ext = filename.split('.').pop()?.toLowerCase() ?? 'jpg';
+        const mime = ext === 'png' ? 'image/png' : 'image/jpeg';
+        form.append('avatar', { uri: avatarUri, name: filename, type: mime } as any);
+      }
+
+      console.log('[updateProfile] fullName:', fullName, 'avatar:', avatarUri ?? 'none');
+
+      const response = await fetch(`${API_BASE_URL}/users/me`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${accessToken}` },
+        body: form,
+      });
+
+      const data = await response.json();
+      console.log('[updateProfile] status:', response.status, 'body:', JSON.stringify(data, null, 2));
+      if (!response.ok) return rejectWithValue(data.error?.message || data.message || 'Failed to update profile');
+      return data as UserProfileResponse;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Network error occurred');
+    }
+  }
+);
+
 // Create an async thunk to fetch the logged-in user's profile
 export const fetchUserProfile = createAsyncThunk<
   UserProfileResponse,
@@ -266,6 +306,19 @@ const userSlice = createSlice({
         state.user = null;
         state.tokens = null;
         state.isAuthenticated = false;
+      })
+      // Handle updateProfile
+      .addCase(updateProfile.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(updateProfile.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload.data;
+      })
+      .addCase(updateProfile.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload || 'Failed to update profile';
       })
       // Handle fetchUserProfile
       .addCase(fetchUserProfile.pending, (state) => {

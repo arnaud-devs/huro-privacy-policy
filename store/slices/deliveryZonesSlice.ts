@@ -1,0 +1,77 @@
+import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+
+const API_BASE_URL = 'https://huzago-backend.onrender.com/api/v1';
+
+export type DeliveryZoneType = 'CAMPUS' | 'EXTERNAL';
+
+export interface DeliveryZone {
+  id: string;
+  name: string;
+  type: DeliveryZoneType;
+  deliveryFee: number;
+  pickupLabel: string;
+}
+
+interface DeliveryZonesState {
+  zones: DeliveryZone[];
+  isLoading: boolean;
+  error: string | null;
+}
+
+const initialState: DeliveryZonesState = {
+  zones: [],
+  isLoading: false,
+  error: null,
+};
+
+export const fetchDeliveryZones = createAsyncThunk<
+  DeliveryZone[],
+  { type?: DeliveryZoneType } | void,
+  { state: { user: { tokens: { accessToken: string } | null } }; rejectValue: string }
+>(
+  'deliveryZones/fetch',
+  async (params, { getState, rejectWithValue }) => {
+    try {
+      const accessToken = getState().user.tokens?.accessToken;
+      if (!accessToken) return rejectWithValue('Not authenticated');
+
+      const query = params?.type ? `?type=${params.type}` : '';
+
+      const response = await fetch(`${API_BASE_URL}/delivery-zones${query}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      const data = await response.json();
+      if (!response.ok) return rejectWithValue(data.message || 'Failed to fetch delivery zones');
+      return data.data as DeliveryZone[];
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Network error occurred');
+    }
+  }
+);
+
+const deliveryZonesSlice = createSlice({
+  name: 'deliveryZones',
+  initialState,
+  reducers: {},
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchDeliveryZones.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchDeliveryZones.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.zones = action.payload;
+      })
+      .addCase(fetchDeliveryZones.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload || 'Failed to fetch delivery zones';
+      });
+  },
+});
+
+export default deliveryZonesSlice.reducer;
