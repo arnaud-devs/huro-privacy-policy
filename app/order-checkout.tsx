@@ -34,6 +34,7 @@ export default function OrderCheckoutScreen() {
     subtotal: string;
     batchId: string;
     deliveryZoneId: string;
+    gateId: string;
     deliveryFee: string;
   }>();
 
@@ -78,6 +79,7 @@ export default function OrderCheckoutScreen() {
         items,
         batchId: params.batchId,
         deliveryZoneId: params.deliveryZoneId,
+        gateId: params.gateId || undefined,
         momoName: momoName.trim(),
         momoPhone: momoPhone.trim(),
         deliveryNote: deliveryNote.trim() || undefined,
@@ -101,6 +103,7 @@ export default function OrderCheckoutScreen() {
             items,
             batchId: params.batchId,
             deliveryZoneId: params.deliveryZoneId,
+            gateId: params.gateId || undefined,
             momoName: momoName.trim(),
             momoPhone: momoPhone.trim(),
             deliveryNote: deliveryNote.trim() || undefined,

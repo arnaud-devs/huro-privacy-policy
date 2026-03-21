@@ -16,6 +16,7 @@ import { fetchCart, adjustQuantity, clearCart, updateCartItem, removeCartItem } 
 import { fetchProducts } from "@/store/slices/productsSlice";
 import { fetchOpenBatches, Batch } from "@/store/slices/batchesSlice";
 import { fetchDeliveryZones, DeliveryZone } from "@/store/slices/deliveryZonesSlice";
+import { fetchGates, Gate } from "@/store/slices/gatesSlice";
 
 const DELIVERY_FEE = 1000;
 
@@ -37,9 +38,12 @@ export default function CartScreen() {
   const allProducts = useAppSelector((state) => state.products.products);
   const { batches, isLoading: batchesLoading } = useAppSelector((state) => state.batches);
   const { zones, isLoading: zonesLoading } = useAppSelector((state) => state.deliveryZones);
+  const { gates, isLoading: gatesLoading } = useAppSelector((state) => state.gates);
   const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null);
   const [selectedZone, setSelectedZone] = useState<DeliveryZone | null>(null);
+  const [selectedGate, setSelectedGate] = useState<Gate | null>(null);
   const [showZonePicker, setShowZonePicker] = useState(false);
+  const [showGatePicker, setShowGatePicker] = useState(false);
 
   useEffect(() => {
     dispatch(fetchCart());
@@ -55,12 +59,22 @@ export default function CartScreen() {
     }
   }, [batches]);
 
-  // Auto-select first zone when zones load
+  // Auto-select first zone when zones load, then fetch its gates
   useEffect(() => {
     if (zones.length > 0 && !selectedZone) {
-      setSelectedZone(zones[0]);
+      const first = zones[0];
+      setSelectedZone(first);
+      dispatch(fetchGates(first.id));
     }
   }, [zones]);
+
+  // When zone changes manually, reset gate and fetch new gates
+  function handleZoneSelect(zone: DeliveryZone) {
+    setSelectedZone(zone);
+    setSelectedGate(null);
+    setShowZonePicker(false);
+    dispatch(fetchGates(zone.id));
+  }
 
   const total = (subtotal ?? 0) + DELIVERY_FEE;
 
@@ -269,8 +283,8 @@ export default function CartScreen() {
             </ScrollView>
           )}
 
-          {/* ── Pickup Point ── */}
-          <Text style={styles.sectionTitleSpaced}>Pickup Point</Text>
+          {/* ── Campus ── */}
+          <Text style={styles.sectionTitleSpaced}>Campus</Text>
           {zonesLoading ? (
             <ActivityIndicator size="small" color="#1C74E9" style={{ marginVertical: 12 }} />
           ) : (
@@ -280,11 +294,11 @@ export default function CartScreen() {
                 onPress={() => setShowZonePicker((v) => !v)}
               >
                 <View style={styles.pinCircle}>
-                  <Ionicons name="location-outline" size={22} color="#1C74E9" />
+                  <Ionicons name="business-outline" size={22} color="#1C74E9" />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.pickupName}>
-                    {selectedZone ? selectedZone.name : "Select pickup point"}
+                    {selectedZone ? selectedZone.name : "Select campus"}
                   </Text>
                   {selectedZone && (
                     <Text style={styles.pickupAddr}>
@@ -311,10 +325,7 @@ export default function CartScreen() {
                           i < zones.length - 1 && styles.zoneItemBorder,
                           active && styles.zoneItemActive,
                         ]}
-                        onPress={() => {
-                          setSelectedZone(zone);
-                          setShowZonePicker(false);
-                        }}
+                        onPress={() => handleZoneSelect(zone)}
                       >
                         <View style={{ flex: 1 }}>
                           <Text style={[styles.zoneName, active && styles.zoneNameActive]}>
@@ -336,6 +347,71 @@ export default function CartScreen() {
                     );
                   })}
                 </View>
+              )}
+            </>
+          )}
+
+          {/* ── Gate ── */}
+          {selectedZone && (
+            <>
+              <Text style={styles.sectionTitleSpaced}>Gate</Text>
+              {gatesLoading ? (
+                <ActivityIndicator size="small" color="#1C74E9" style={{ marginVertical: 12 }} />
+              ) : gates.length === 0 ? (
+                <View style={styles.noBatchCard}>
+                  <Ionicons name="location-outline" size={20} color="#94a3b8" />
+                  <Text style={styles.noBatchText}>No gates available for this campus</Text>
+                </View>
+              ) : (
+                <>
+                  <TouchableOpacity
+                    style={[styles.card, styles.pickupRow]}
+                    onPress={() => setShowGatePicker((v) => !v)}
+                  >
+                    <View style={styles.pinCircle}>
+                      <Ionicons name="location-outline" size={22} color="#1C74E9" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.pickupName}>
+                        {selectedGate ? selectedGate.name : "Select a gate"}
+                      </Text>
+                    </View>
+                    <Ionicons
+                      name={showGatePicker ? "chevron-up" : "chevron-down"}
+                      size={20}
+                      color="#94a3b8"
+                    />
+                  </TouchableOpacity>
+
+                  {showGatePicker && (
+                    <View style={styles.zoneList}>
+                      {gates.map((gate, i) => {
+                        const active = selectedGate?.id === gate.id;
+                        return (
+                          <TouchableOpacity
+                            key={gate.id}
+                            style={[
+                              styles.zoneItem,
+                              i < gates.length - 1 && styles.zoneItemBorder,
+                              active && styles.zoneItemActive,
+                            ]}
+                            onPress={() => {
+                              setSelectedGate(gate);
+                              setShowGatePicker(false);
+                            }}
+                          >
+                            <Text style={[styles.zoneName, active && styles.zoneNameActive]}>
+                              {gate.name}
+                            </Text>
+                            {active && (
+                              <Ionicons name="checkmark-circle" size={18} color="#1C74E9" />
+                            )}
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  )}
+                </>
               )}
             </>
           )}
@@ -368,6 +444,7 @@ export default function CartScreen() {
                   subtotal: String(subtotal),
                   batchId: selectedBatch?.id ?? "",
                   deliveryZoneId: selectedZone?.id ?? "",
+                  gateId: selectedGate?.id ?? "",
                   deliveryFee: String(selectedZone?.deliveryFee ?? DELIVERY_FEE),
                 },
               })
