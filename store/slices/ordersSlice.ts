@@ -112,8 +112,16 @@ export const fetchOrderById = createAsyncThunk<
       });
 
       const data = await response.json();
+      console.log('[fetchOrderById] status:', response.status, 'body:', JSON.stringify(data, null, 2));
       if (!response.ok) return rejectWithValue(data.message || 'Failed to fetch order');
-      return data.data as OrderDetail;
+      const raw = data.data?.order ?? data.data;
+      return {
+        ...raw,
+        items: raw.orderItems ?? raw.items ?? [],
+        subtotal: Number(raw.subtotal ?? 0),
+        deliveryFee: Number(raw.deliveryFee ?? 0),
+        payableAmount: Number(raw.payableAmount ?? 0),
+      } as OrderDetail;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Network error occurred');
     }

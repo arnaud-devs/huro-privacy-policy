@@ -36,12 +36,14 @@ function buildSteps(current: OrderStatus): TimelineStep[] {
 const CANCELLABLE_STATUSES: OrderStatus[] = ["PENDING_PAYMENT", "PAID", "PREPARING"];
 
 export default function OrderStatusScreen() {
-  const { orderId } = useLocalSearchParams<{ orderId: string }>();
+  const params = useLocalSearchParams<{ orderId: string }>();
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { orderDetail, isLoadingDetail, detailError, isCancelling } = useAppSelector(
+  const { orderDetail, isLoadingDetail, detailError, isCancelling, lastOrderId } = useAppSelector(
     (state) => state.orders
   );
+
+  const orderId = params.orderId ?? lastOrderId ?? undefined;
 
   useEffect(() => {
     if (orderId) dispatch(fetchOrderById(orderId));
