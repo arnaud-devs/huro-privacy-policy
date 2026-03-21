@@ -138,6 +138,13 @@ export default function RiderTabLayout() {
         }}
       />
       <Tabs.Screen
+        name="order-detail"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
         name="report-issue"
         options={{
           href: null,

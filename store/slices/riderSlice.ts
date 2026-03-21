@@ -48,6 +48,53 @@ export interface RiderBatch {
   deliveryZone: { name: string };
 }
 
+export interface RiderOrderItem {
+  id: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+}
+
+export interface RiderOrder {
+  id: string;
+  status: string;
+  pickupSignature: string | null;
+  snapshotZoneName: string;
+  payableAmount: number;
+  orderItems?: RiderOrderItem[];
+  items?: RiderOrderItem[];
+}
+
+export interface RiderOrderDetail {
+  id: string;
+  status: string;
+  paymentStatus: string;
+  payableAmount: number;
+  subtotal: number;
+  deliveryFee: number;
+  snapshotName: string;
+  snapshotPhone: string;
+  snapshotZoneName: string;
+  snapshotZoneType: string;
+  customAddress: string | null;
+  pickupSignature: string | null;
+  createdAt: string;
+  orderItems?: RiderOrderItem[];
+  items?: RiderOrderItem[];
+}
+
+export interface VerificationResult {
+  valid: boolean;
+  order: {
+    id: string;
+    status: string;
+    customerName: string;
+    deliveryLocation: string;
+    items: { name: string; qty: number }[];
+  };
+}
+
 interface RiderState {
   profile: RiderProfile | null;
   batches: RiderBatch[];
@@ -56,6 +103,16 @@ interface RiderState {
   batchDetail: BatchDetail | null;
   isLoadingBatchDetail: boolean;
   batchDetailError: string | null;
+  orders: RiderOrder[];
+  isFetchingOrders: boolean;
+  ordersError: string | null;
+  orderDetail: RiderOrderDetail | null;
+  isLoadingOrderDetail: boolean;
+  orderDetailError: string | null;
+  isMarkingDelivered: boolean;
+  verificationResult: VerificationResult | null;
+  isVerifying: boolean;
+  verifyError: string | null;
   isUploadingId: boolean;
   uploadError: string | null;
 }
@@ -68,9 +125,111 @@ const initialState: RiderState = {
   batchDetail: null,
   isLoadingBatchDetail: false,
   batchDetailError: null,
+  orders: [],
+  isFetchingOrders: false,
+  ordersError: null,
+  orderDetail: null,
+  isLoadingOrderDetail: false,
+  orderDetailError: null,
+  isMarkingDelivered: false,
+  verificationResult: null,
+  isVerifying: false,
+  verifyError: null,
   isUploadingId: false,
   uploadError: null,
 };
+
+export const fetchRiderOrders = createAsyncThunk<
+  RiderOrder[],
+  { picked?: boolean; status?: string; page?: number; limit?: number } | void,
+  { state: { user: { tokens: { accessToken: string } | null } }; rejectValue: string }
+>(
+  'rider/fetchOrders',
+  async (params, { getState, rejectWithValue }) => {
+    try {
+      const accessToken = getState().user.tokens?.accessToken;
+      if (!accessToken) return rejectWithValue('Not authenticated');
+
+      const query = new URLSearchParams();
+      if (params?.picked !== undefined) query.append('picked', String(params.picked));
+      if (params?.status) query.append('status', params.status);
+      if (params?.page) query.append('page', String(params.page));
+      if (params?.limit) query.append('limit', String(params.limit));
+
+      const url = `${API_BASE_URL}/orders${query.toString() ? `?${query.toString()}` : ''}`;
+      const response = await fetch(url, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      const data = await response.json();
+      console.log('[fetchRiderOrders] status:', response.status, 'body:', JSON.stringify(data, null, 2));
+      if (!response.ok) return rejectWithValue(data.message || 'Failed to fetch orders');
+      const raw = data.data;
+      return (Array.isArray(raw) ? raw : raw?.data ?? raw?.items ?? []) as RiderOrder[];
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Network error occurred');
+    }
+  }
+);
+
+export const markOrderDelivered = createAsyncThunk<
+  string,
+  string,
+  { state: { user: { tokens: { accessToken: string } | null } }; rejectValue: string }
+>(
+  'rider/markOrderDelivered',
+  async (orderId, { getState, rejectWithValue }) => {
+    try {
+      const accessToken = getState().user.tokens?.accessToken;
+      if (!accessToken) return rejectWithValue('Not authenticated');
+
+      const response = await fetch(`${API_BASE_URL}/orders/rider/${orderId}/deliver`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      const data = await response.json();
+      if (!response.ok) return rejectWithValue(data.message || 'Failed to mark as delivered');
+      return orderId;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Network error occurred');
+    }
+  }
+);
+
+export const fetchRiderOrderDetail = createAsyncThunk<
+  RiderOrderDetail,
+  string,
+  { state: { user: { tokens: { accessToken: string } | null } }; rejectValue: string }
+>(
+  'rider/fetchOrderDetail',
+  async (orderId, { getState, rejectWithValue }) => {
+    try {
+      const accessToken = getState().user.tokens?.accessToken;
+      if (!accessToken) return rejectWithValue('Not authenticated');
+
+      const response = await fetch(`${API_BASE_URL}/orders/${orderId}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      const data = await response.json();
+      if (!response.ok) return rejectWithValue(data.message || 'Failed to fetch order');
+      const raw = data.data?.order ?? data.data;
+      return raw as RiderOrderDetail;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Network error occurred');
+    }
+  }
+);
 
 export const fetchBatchDetail = createAsyncThunk<
   BatchDetail,
@@ -135,6 +294,35 @@ export const fetchRiderBatches = createAsyncThunk<
   }
 );
 
+export const verifyPickupSignature = createAsyncThunk<
+  VerificationResult,
+  { orderId: string; signature: string },
+  { state: { user: { tokens: { accessToken: string } | null } }; rejectValue: string }
+>(
+  'rider/verifyPickupSignature',
+  async ({ orderId, signature }, { getState, rejectWithValue }) => {
+    try {
+      const accessToken = getState().user.tokens?.accessToken;
+      if (!accessToken) return rejectWithValue('Not authenticated');
+
+      const response = await fetch(`${API_BASE_URL}/orders/rider/${orderId}/verify-pickup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ signature }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) return rejectWithValue(data.message || 'Verification failed');
+      return data.data as VerificationResult;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Network error occurred');
+    }
+  }
+);
+
 export const uploadIdDocument = createAsyncThunk<
   RiderProfile,
   { imageUri: string },
@@ -178,6 +366,31 @@ const riderSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      .addCase(fetchRiderOrderDetail.pending, (state) => {
+        state.isLoadingOrderDetail = true;
+        state.orderDetailError = null;
+        state.orderDetail = null;
+      })
+      .addCase(fetchRiderOrderDetail.fulfilled, (state, action) => {
+        state.isLoadingOrderDetail = false;
+        state.orderDetail = action.payload;
+      })
+      .addCase(fetchRiderOrderDetail.rejected, (state, action) => {
+        state.isLoadingOrderDetail = false;
+        state.orderDetailError = action.payload || 'Failed to fetch order';
+      })
+      .addCase(fetchRiderOrders.pending, (state) => {
+        state.isFetchingOrders = true;
+        state.ordersError = null;
+      })
+      .addCase(fetchRiderOrders.fulfilled, (state, action) => {
+        state.isFetchingOrders = false;
+        state.orders = action.payload;
+      })
+      .addCase(fetchRiderOrders.rejected, (state, action) => {
+        state.isFetchingOrders = false;
+        state.ordersError = action.payload || 'Failed to fetch orders';
+      })
       .addCase(fetchBatchDetail.pending, (state) => {
         state.isLoadingBatchDetail = true;
         state.batchDetailError = null;
@@ -202,6 +415,31 @@ const riderSlice = createSlice({
       .addCase(fetchRiderBatches.rejected, (state, action) => {
         state.isFetchingBatches = false;
         state.batchesError = action.payload || 'Failed to fetch batches';
+      })
+      .addCase(markOrderDelivered.pending, (state) => {
+        state.isMarkingDelivered = true;
+      })
+      .addCase(markOrderDelivered.fulfilled, (state, action) => {
+        state.isMarkingDelivered = false;
+        if (state.orderDetail?.id === action.payload) {
+          state.orderDetail.status = 'DELIVERED';
+        }
+        state.orders = state.orders.filter((o) => o.id !== action.payload);
+      })
+      .addCase(markOrderDelivered.rejected, (state) => {
+        state.isMarkingDelivered = false;
+      })
+      .addCase(verifyPickupSignature.pending, (state) => {
+        state.isVerifying = true;
+        state.verifyError = null;
+      })
+      .addCase(verifyPickupSignature.fulfilled, (state, action) => {
+        state.isVerifying = false;
+        state.verificationResult = action.payload;
+      })
+      .addCase(verifyPickupSignature.rejected, (state, action) => {
+        state.isVerifying = false;
+        state.verifyError = action.payload || 'Verification failed';
       })
       .addCase(uploadIdDocument.pending, (state) => {
         state.isUploadingId = true;

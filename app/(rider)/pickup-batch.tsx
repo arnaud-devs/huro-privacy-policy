@@ -18,7 +18,7 @@ import {
 } from "@/components/rider/PickupShopSection";
 import { PickupStatsGrid } from "@/components/rider/PickupStatsGrid";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchBatchDetail } from "@/store/slices/riderSlice";
+import { fetchBatchDetail, fetchRiderOrders } from "@/store/slices/riderSlice";
 
 function ordersToShops(orders: any[]): ShopBatch[] {
   return orders.map((order) => {
@@ -43,16 +43,21 @@ export default function PickupBatchScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { batchId } = useLocalSearchParams<{ batchId: string }>();
-  const { batchDetail, isLoadingBatchDetail } = useAppSelector((state) => state.rider);
+  const { batchDetail, isLoadingBatchDetail, orders: riderOrders, isFetchingOrders } = useAppSelector((state) => state.rider);
 
   useEffect(() => {
-    if (batchId) dispatch(fetchBatchDetail(batchId));
+    if (batchId) {
+      dispatch(fetchBatchDetail(batchId));
+      dispatch(fetchRiderOrders({ picked: false }));
+    }
   }, [batchId]);
 
   const [shops, setShops] = useState<ShopBatch[]>([]);
 
   useEffect(() => {
-    if (batchDetail?.orders) {
+    if (riderOrders.length > 0) {
+      setShops(ordersToShops(riderOrders));
+    } else if (batchDetail?.orders) {
       setShops(ordersToShops(batchDetail.orders));
     }
   }, [batchDetail]);
@@ -107,7 +112,7 @@ export default function PickupBatchScreen() {
           </TouchableOpacity>
         </View>
 
-        {isLoadingBatchDetail ? (
+        {isLoadingBatchDetail || isFetchingOrders ? (
           <View style={{ alignItems: "center", paddingVertical: 40 }}>
             <ActivityIndicator size="large" color="#1C74E9" />
           </View>
@@ -122,11 +127,17 @@ export default function PickupBatchScreen() {
           </>
         )}
 
-        {shops.map((shop) => (
+        {shops.map((shop, i) => (
           <PickupShopSection
             key={shop.name}
             shop={shop}
             onItemToggle={handleItemToggle}
+            onOrderPress={() =>
+              router.push({
+                pathname: "/(rider)/order-detail",
+                params: { orderId: riderOrders[i]?.id ?? "" },
+              })
+            }
           />
         ))}
 

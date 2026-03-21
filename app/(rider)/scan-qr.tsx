@@ -1,12 +1,18 @@
 import { Ionicons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { verifyPickupSignature } from "@/store/slices/riderSlice";
 
 export default function ScanQRScreen() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
+  const { orderId } = useLocalSearchParams<{ orderId: string }>();
+  const { isVerifying } = useAppSelector((state) => state.rider);
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
 
@@ -14,21 +20,36 @@ export default function ScanQRScreen() {
     router.replace("/(rider)/active-delivery");
   };
 
-  const handleBarcodeScanned = ({ type, data }: { type: string; data: string }) => {
+  const handleBarcodeScanned = async ({ data }: { data: string }) => {
+    if (scanned || isVerifying || !orderId) return;
     setScanned(true);
-    router.push("/(rider)/order-verified");
+
+    const result = await dispatch(verifyPickupSignature({ orderId, signature: data }));
+    if (verifyPickupSignature.fulfilled.match(result) && result.payload.valid) {
+      router.push({
+        pathname: "/(rider)/order-verified",
+        params: {
+          orderId,
+          customerName: result.payload.order.customerName,
+        },
+      });
+    } else {
+      Alert.alert(
+        "Invalid Code",
+        (result.payload as string) || "QR code does not match this order.",
+        [{ text: "Try Again", onPress: () => setScanned(false) }]
+      );
+    }
   };
 
   if (!permission) {
-    // Camera permissions are still loading.
     return <View />;
   }
 
   if (!permission.granted) {
-    // Camera permissions are not granted yet.
     return (
       <View style={styles.permissionContainer}>
-        <Text style={{ textAlign: 'center', marginBottom: 16 }}>We need your permission to show the camera</Text>
+        <Text style={{ textAlign: "center", marginBottom: 16 }}>We need your permission to show the camera</Text>
         <TouchableOpacity style={styles.scanBtn} onPress={requestPermission}>
           <Text style={styles.scanBtnText}>Grant Permission</Text>
         </TouchableOpacity>
@@ -47,48 +68,49 @@ export default function ScanQRScreen() {
         <View style={styles.headerRight} />
       </View>
 
-      {/* Scanner Area Placeholder */}
+      {/* Scanner Area */}
       <View style={styles.scannerContainer}>
         <CameraView
           style={StyleSheet.absoluteFillObject}
           facing="back"
-          onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
+          onBarcodeScanned={scanned || isVerifying ? undefined : handleBarcodeScanned}
           barcodeScannerSettings={{
             barcodeTypes: ["qr"],
           }}
         />
         <View style={styles.targetBox}>
-          {/* Top-left */}
           <View style={[styles.corner, styles.topLeft]} />
-          {/* Top-right */}
           <View style={[styles.corner, styles.topRight]} />
-          {/* Bottom-left */}
           <View style={[styles.corner, styles.bottomLeft]} />
-          {/* Bottom-right */}
           <View style={[styles.corner, styles.bottomRight]} />
-
-          {/* Scanner Line */}
           <View style={styles.scannerLine} />
         </View>
       </View>
 
-      {/* Bottom Sheet Modal View */}
+      {/* Bottom Sheet */}
       <View style={styles.bottomSheet}>
         <View style={styles.grabber} />
-        
+
         <Text style={styles.sectionTitle}>VERIFYING DELIVERY</Text>
 
-        <View style={styles.orderCard}>
-          <View style={styles.orderInfo}>
-            <Text style={styles.orderId}>Order #1045</Text>
-            <Text style={styles.customerName}>Alex Rivers</Text>
+        {orderId && (
+          <View style={styles.orderCard}>
+            <View style={styles.orderInfo}>
+              <Text style={styles.orderId}>Order #{orderId.slice(0, 6).toUpperCase()}</Text>
+              <Text style={styles.customerName}>Scan customer's QR code</Text>
+            </View>
+            <View style={styles.iconCircle}>
+              <Ionicons name="person-outline" size={20} color="#1C74E9" />
+            </View>
           </View>
-          <View style={styles.iconCircle}>
-            <Ionicons name="person-outline" size={20} color="#1C74E9" />
-          </View>
-        </View>
+        )}
 
-        {scanned ? (
+        {isVerifying ? (
+          <View style={[styles.scanBtn, { opacity: 0.8 }]}>
+            <ActivityIndicator color="#FFFFFF" />
+            <Text style={styles.scanBtnText}>Verifying...</Text>
+          </View>
+        ) : scanned ? (
           <TouchableOpacity style={styles.scanBtn} activeOpacity={0.85} onPress={() => setScanned(false)}>
             <Ionicons name="refresh" size={20} color="#FFFFFF" />
             <Text style={styles.scanBtnText}>Scan Again</Text>
@@ -100,7 +122,16 @@ export default function ScanQRScreen() {
           </TouchableOpacity>
         )}
 
-        <TouchableOpacity style={styles.manualBtn} activeOpacity={0.85} onPress={() => router.push("/(rider)/manual-code-entry")}>
+        <TouchableOpacity
+          style={styles.manualBtn}
+          activeOpacity={0.85}
+          onPress={() =>
+            router.push({
+              pathname: "/(rider)/manual-code-entry",
+              params: { orderId: orderId ?? "" },
+            })
+          }
+        >
           <Text style={styles.manualBtnText}>Enter Code Manually</Text>
         </TouchableOpacity>
 
@@ -142,9 +173,9 @@ const styles = StyleSheet.create({
   },
   permissionContainer: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
     padding: 20,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: "#F8FAFC",
   },
   scannerContainer: {
     flex: 1,
