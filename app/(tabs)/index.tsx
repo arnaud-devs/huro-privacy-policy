@@ -10,6 +10,7 @@ import QuickLinks from "@/components/home/QuickLinks";
 import SearchBar from "@/components/home/SearchBar";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchOpenBatches } from "@/store/slices/batchesSlice";
+import { fetchOrders } from "@/store/slices/ordersSlice";
 
 export default function HomeScreen() {
   const dispatch = useAppDispatch();
@@ -17,6 +18,7 @@ export default function HomeScreen() {
 
   useEffect(() => {
     dispatch(fetchOpenBatches());
+    dispatch(fetchOrders());
   }, [dispatch]);
 
   return (
