@@ -1,20 +1,26 @@
 import { StyleSheet, Text, View } from "react-native";
 
-export function PickupStatsGrid() {
+interface Props {
+  totalOrders: number;
+  ridersCount: number;
+  zoneName: string;
+}
+
+export function PickupStatsGrid({ totalOrders, ridersCount, zoneName }: Props) {
   return (
     <View style={styles.statsGrid}>
       <View style={styles.statCard}>
-        <Text style={styles.statValueBlue}>26</Text>
+        <Text style={styles.statValueBlue}>{totalOrders}</Text>
         <Text style={styles.statLabel}>TOTAL</Text>
         <Text style={styles.statLabel}>ORDERS</Text>
       </View>
       <View style={styles.statCard}>
-        <Text style={styles.statValue}>4</Text>
-        <Text style={styles.statLabel}>PICKUPS</Text>
+        <Text style={styles.statValue}>{ridersCount}</Text>
+        <Text style={styles.statLabel}>RIDERS</Text>
       </View>
       <View style={styles.statCard}>
-        <Text style={styles.statValue}>UR CST</Text>
-        <Text style={styles.statLabel}>MAIN GATE</Text>
+        <Text style={styles.statValue} numberOfLines={1}>{zoneName}</Text>
+        <Text style={styles.statLabel}>ZONE</Text>
       </View>
     </View>
   );

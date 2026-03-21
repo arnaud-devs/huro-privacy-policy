@@ -1,9 +1,12 @@
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchUserProfile, logoutUser } from "@/store/slices/userSlice";
+import { uploadIdDocument } from "@/store/slices/riderSlice";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Image,
   Pressable,
@@ -18,15 +21,35 @@ export default function RiderProfileScreen() {
   const router = useRouter();
   const [isOnline, setIsOnline] = useState(true);
   const dispatch = useAppDispatch();
-  const { user, tokens, isLoading, isAuthenticated } = useAppSelector(
-    (state) => state.user,
-  );
+  const { user, tokens, isAuthenticated } = useAppSelector((state) => state.user);
+  const { isUploadingId } = useAppSelector((state) => state.rider);
 
   useEffect(() => {
     if (isAuthenticated) {
       dispatch(fetchUserProfile());
     }
   }, [dispatch, isAuthenticated]);
+
+  async function handleUploadId() {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission required", "Please allow access to your photo library.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 0.8,
+      allowsEditing: true,
+    });
+    if (result.canceled) return;
+    const imageUri = result.assets[0].uri;
+    const res = await dispatch(uploadIdDocument({ imageUri }));
+    if (uploadIdDocument.fulfilled.match(res)) {
+      Alert.alert("Success", "ID document uploaded successfully.");
+    } else {
+      Alert.alert("Upload Failed", (res.payload as string) || "Please try again.");
+    }
+  }
 
   const handleLogout = () => {
     Alert.alert("Logout", "Are you sure you want to log out?", [
@@ -133,6 +156,34 @@ export default function RiderProfileScreen() {
             </View>
             <Text className="text-slate-500 font-medium">RAF 450R</Text>
           </View>
+
+          {/* ID Document Section */}
+          <Text className="text-slate-500 font-bold text-xs uppercase mb-3 ml-1">
+            VERIFICATION
+          </Text>
+          <Pressable
+            onPress={handleUploadId}
+            disabled={isUploadingId}
+            className="bg-white rounded-2xl p-4 flex-row items-center justify-between mb-6 border border-slate-100"
+            style={{ opacity: isUploadingId ? 0.6 : 1 }}
+          >
+            <View className="flex-row items-center">
+              <View className="w-10 h-10 rounded-full bg-[#F0F6FF] items-center justify-center mr-3">
+                <Feather name="credit-card" size={20} color="#1C74E9" />
+              </View>
+              <View>
+                <Text className="text-slate-900 font-bold">ID Document</Text>
+                <Text className="text-slate-500 text-xs mt-0.5">
+                  Upload your national ID or passport
+                </Text>
+              </View>
+            </View>
+            {isUploadingId ? (
+              <ActivityIndicator size="small" color="#1C74E9" />
+            ) : (
+              <Feather name="upload" size={18} color="#1C74E9" />
+            )}
+          </Pressable>
 
           {/* Help & Actions Section */}
           <Text className="text-slate-500 font-bold text-xs uppercase mb-3 ml-1">

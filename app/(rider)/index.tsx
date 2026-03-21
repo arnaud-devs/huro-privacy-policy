@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,19 +11,39 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const PICKUP_STOPS = [
-  { name: "Nyabugogo Logistics Hub", orders: 6 },
-  { name: "Printing Shop", orders: 3 },
-  { name: "Electronics Stall", orders: 3 },
-];
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchRiderBatches, RiderBatch } from "@/store/slices/riderSlice";
+
+function formatTime(iso: string) {
+  return new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+}
+
+function minsUntil(iso: string): string {
+  const diff = new Date(iso).getTime() - Date.now();
+  if (diff <= 0) return "Now";
+  const totalMin = Math.floor(diff / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
 
 export default function RiderHomeScreen() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const [isOnline, setIsOnline] = useState(false);
+  const { batches, isFetchingBatches } = useAppSelector((state) => state.rider);
+  const user = useAppSelector((state) => state.user.user);
 
-  const deliveriesToday = 24;
-  const deliveriesGoal = 30;
-  const progress = deliveriesToday / deliveriesGoal;
+  useEffect(() => {
+    dispatch(fetchRiderBatches());
+  }, [dispatch]);
+
+  const currentBatch: RiderBatch | null =
+    batches.find((b) => b.status === "IN_PROGRESS" || b.status === "CLOSED") ?? null;
+  const firstName = user?.fullName?.split(" ")[0] ?? "Rider";
+
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning," : hour < 17 ? "Good afternoon," : "Good evening,";
 
   return (
     <SafeAreaView style={styles.root} edges={["top"]}>
@@ -33,8 +54,8 @@ export default function RiderHomeScreen() {
             <Ionicons name="person" size={22} color="#64748b" />
           </View>
           <View>
-            <Text style={styles.greetingSub}>Good morning,</Text>
-            <Text style={styles.greetingName}>Eric</Text>
+            <Text style={styles.greetingSub}>{greeting}</Text>
+            <Text style={styles.greetingName}>{firstName}</Text>
           </View>
         </View>
         <TouchableOpacity style={styles.notifBtn}>
@@ -64,78 +85,84 @@ export default function RiderHomeScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         {/* Current Batch card */}
-        <View style={styles.batchCard}>
-          <View style={styles.batchHeader}>
-            <Text style={styles.batchTitle}>Current Batch</Text>
-            <View style={styles.priorityBadge}>
-              <Text style={styles.priorityText}>PRIORITY</Text>
-            </View>
+        {isFetchingBatches ? (
+          <View style={[styles.batchCard, { alignItems: "center", paddingVertical: 32 }]}>
+            <ActivityIndicator size="large" color="#1C74E9" />
+            <Text style={{ color: "#64748b", marginTop: 12 }}>Loading batch...</Text>
           </View>
-
-          <Text style={styles.pickupTime}>Pickup: 11:30 AM (18 mins)</Text>
-          <Text style={styles.ordersTotal}>12 Orders Total</Text>
-
-          {/* Route */}
-          <View style={styles.routeWrap}>
-            <View style={styles.routeRow}>
-              <View style={[styles.routeDot, { backgroundColor: "#1C74E9" }]} />
-              <View>
-                <Text style={styles.routeLabel}>PICKUP FROM</Text>
-                <Text style={styles.routeLocation}>Nyabugogo Logistics Hub</Text>
+        ) : currentBatch ? (
+          <View style={styles.batchCard}>
+            <View style={styles.batchHeader}>
+              <Text style={styles.batchTitle}>Current Batch</Text>
+              <View style={styles.priorityBadge}>
+                <Text style={styles.priorityText}>{currentBatch.slotLabel.toUpperCase()}</Text>
               </View>
             </View>
-            <View style={styles.routeLine} />
-            <View style={styles.routeRow}>
-              <View style={[styles.routeDot, { backgroundColor: "#22c55e" }]} />
-              <View>
-                <Text style={styles.routeLabel}>DELIVER TO</Text>
-                <Text style={styles.routeLocation}>UR CST Main Gate</Text>
+
+            <Text style={styles.pickupTime}>
+              Pickup: {formatTime(currentBatch.scheduledAt)} ({minsUntil(currentBatch.scheduledAt)})
+            </Text>
+            <Text style={styles.ordersTotal}>{currentBatch.currentOrders} Orders Total</Text>
+
+            {/* Route */}
+            <View style={styles.routeWrap}>
+              <View style={styles.routeRow}>
+                <View style={[styles.routeDot, { backgroundColor: "#1C74E9" }]} />
+                <View>
+                  <Text style={styles.routeLabel}>DELIVER TO</Text>
+                  <Text style={styles.routeLocation}>{currentBatch.deliveryZone.name}</Text>
+                </View>
               </View>
             </View>
-          </View>
 
-          {/* Start Pickup button */}
-          <TouchableOpacity
-            style={styles.startBtn}
-            activeOpacity={0.85}
-            onPress={() => router.push("/(rider)/pickup-batch")}
-          >
-            <Ionicons name="navigate-outline" size={18} color="white" style={{ marginRight: 8 }} />
-            <Text style={styles.startBtnText}>Start Pickup</Text>
-          </TouchableOpacity>
+            {/* Start Pickup button */}
+            <TouchableOpacity
+              style={styles.startBtn}
+              activeOpacity={0.85}
+              onPress={() => router.push({ pathname: "/(rider)/pickup-batch", params: { batchId: currentBatch.id } })}
+            >
+              <Ionicons name="navigate-outline" size={18} color="white" style={{ marginRight: 8 }} />
+              <Text style={styles.startBtnText}>Start Pickup</Text>
+            </TouchableOpacity>
 
-          {/* Pickup Stops */}
-          <View style={styles.stopsSection}>
-            <Text style={styles.stopsTitle}>PICKUP STOPS</Text>
-            {PICKUP_STOPS.map((stop, i) => (
-              <View key={i} style={styles.stopRow}>
+            {/* Order count */}
+            <View style={styles.stopsSection}>
+              <Text style={styles.stopsTitle}>BATCH SUMMARY</Text>
+              <View style={styles.stopRow}>
                 <View style={styles.stopDot} />
-                <Text style={styles.stopName}>{stop.name}</Text>
-                <Text style={styles.stopOrders}>{stop.orders} orders</Text>
+                <Text style={styles.stopName}>{currentBatch.deliveryZone.name}</Text>
+                <Text style={styles.stopOrders}>{currentBatch.currentOrders} / {currentBatch.maxOrders} orders</Text>
               </View>
-            ))}
+            </View>
           </View>
-        </View>
+        ) : (
+          <View style={[styles.batchCard, { alignItems: "center", paddingVertical: 32 }]}>
+            <Ionicons name="bicycle-outline" size={40} color="#cbd5e1" />
+            <Text style={{ color: "#64748b", marginTop: 12, fontWeight: "600" }}>No active batch assigned</Text>
+            <Text style={{ color: "#94a3b8", fontSize: 13, marginTop: 4 }}>Check back when a batch is in progress</Text>
+          </View>
+        )}
 
         {/* Stats row */}
         <View style={styles.statsRow}>
-          {/* Deliveries today */}
           <View style={styles.statCard}>
-            <Text style={styles.statLabel}>DELIVERIES TODAY</Text>
+            <Text style={styles.statLabel}>ORDERS IN BATCH</Text>
             <Text style={styles.statValue}>
-              {deliveriesToday}{" "}
-              <Text style={styles.statGoal}>/ {deliveriesGoal}</Text>
+              {currentBatch?.currentOrders ?? "—"}{" "}
+              {currentBatch && <Text style={styles.statGoal}>/ {currentBatch.maxOrders}</Text>}
             </Text>
-            <View style={styles.progressTrack}>
-              <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
-            </View>
+            {currentBatch && (
+              <View style={styles.progressTrack}>
+                <View style={[styles.progressFill, { width: `${(currentBatch.currentOrders / currentBatch.maxOrders) * 100}%` }]} />
+              </View>
+            )}
           </View>
 
-          {/* Today's pay */}
           <View style={styles.statCard}>
-            <Text style={styles.statLabel}>TODAY'S PAY</Text>
-            <Text style={styles.statValue}>128,400</Text>
-            <Text style={styles.statCurrency}>RWF</Text>
+            <Text style={styles.statLabel}>BATCH STATUS</Text>
+            <Text style={[styles.statValue, { fontSize: 15, marginTop: 4 }]}>
+              {currentBatch?.status ?? "—"}
+            </Text>
           </View>
         </View>
       </ScrollView>
