@@ -39,7 +39,7 @@ export default function RiderHomeScreen() {
   }, [dispatch]);
 
   const currentBatch: RiderBatch | null =
-    batches.find((b) => b.status === "IN_PROGRESS" || b.status === "CLOSED") ?? null;
+    batches.find((b) => b.status !== "CLOSED") ?? null;
   const firstName = user?.fullName?.split(" ")[0] ?? "Rider";
 
   const hour = new Date().getHours();

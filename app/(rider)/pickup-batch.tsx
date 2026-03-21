@@ -20,16 +20,23 @@ import { PickupStatsGrid } from "@/components/rider/PickupStatsGrid";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchBatchDetail } from "@/store/slices/riderSlice";
 
-function ordersToShops(orders: { id: string; status: string; orderItems: { id: string; productName: string; quantity: number }[] }[]): ShopBatch[] {
-  return orders.map((order) => ({
-    name: `Order #${order.id.slice(0, 6).toUpperCase()}`,
-    orders: order.orderItems.length,
-    items: order.orderItems.map((item) => ({
-      id: item.id.slice(0, 6).toUpperCase(),
-      name: `${item.productName}${item.quantity > 1 ? ` x${item.quantity}` : ""}`,
-      status: "not-collected" as const,
-    })),
-  }));
+function ordersToShops(orders: any[]): ShopBatch[] {
+  return orders.map((order) => {
+    const items = order.orderItems ?? order.items ?? [];
+    const orderId = order.id ?? "";
+    return {
+      name: `Order #${orderId.slice(0, 6).toUpperCase()}`,
+      orders: items.length,
+      items: items.map((item: any) => {
+        const itemId = item.id ?? "";
+        return {
+          id: itemId.slice(0, 6).toUpperCase(),
+          name: `${item.productName ?? item.name ?? "Item"}${item.quantity > 1 ? ` x${item.quantity}` : ""}`,
+          status: "not-collected" as const,
+        };
+      }),
+    };
+  });
 }
 
 export default function PickupBatchScreen() {
