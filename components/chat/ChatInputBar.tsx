@@ -20,7 +20,7 @@ export default function ChatInputBar({ onSend }: ChatInputBarProps) {
   };
 
   return (
-    <View 
+    <View
       className="flex-row items-center px-4 pt-3 bg-white border-t border-slate-100"
       style={{ paddingBottom: Math.max(insets.bottom, 24) }}
     >

@@ -1,99 +1,115 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import ActiveOrderCard from "@/components/orders/ActiveOrderCard";
 import RecentlyDelivered from "@/components/orders/RecentlyDelivered";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchOrders, Order, OrderStatus } from "@/store/slices/ordersSlice";
 
 type Tab = "Active" | "Delivered" | "Cancelled";
 const TABS: Tab[] = ["Active", "Delivered", "Cancelled"];
 
-const ACTIVE_ORDERS = [
-  {
-    id: "1",
-    title: "Snack Pack",
-    store: "Campus Store",
-    orderId: "#44291",
-    eta: "12 mins",
-    stage: "Kitchen stage",
-    image:
-      "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80",
-    badge: { label: "Collecting", color: "orange" as const },
-    primaryAction: { label: "Track Order", icon: "location-outline" },
-  },
-  {
-    id: "2",
-    title: "Iced Americano x2",
-    store: "Coffee Beanery",
-    orderId: "#44288",
-    eta: "4 mins",
-    stage: "Near Main Gate",
-    image:
-      "https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=800&q=80",
-    badge: { label: "Arrived", color: "blue" as const },
-    primaryAction: { label: "Call Rider", icon: "bicycle-outline" },
-  },
+const ACTIVE_STATUSES: OrderStatus[] = [
+  "PENDING_PAYMENT", "PAID", "PREPARING", "READY_FOR_PICKUP", "PICKED_UP", "IN_DELIVERY",
 ];
 
-const RECENT_ORDERS = [
-  {
-    id: "1",
-    title: "Healthy Garden S...",
-    date: "Delivered Oct 24",
-    amount: "$12.50",
-    image:
-      "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=200&q=80",
-    action: "rate" as const,
-  },
-  {
-    id: "2",
-    title: "Double Cheese Combo",
-    date: "Delivered Oct 22",
-    amount: "$15.00",
-    image:
-      "https://images.unsplash.com/photo-1586816001966-79b736744398?auto=format&fit=crop&w=200&q=80",
-    action: "reorder" as const,
-  },
-];
+function statusLabel(status: OrderStatus): string {
+  return {
+    PENDING_PAYMENT: "Pending Payment",
+    PAID: "Paid",
+    PREPARING: "Preparing",
+    READY_FOR_PICKUP: "Ready for Pickup",
+    PICKED_UP: "Picked Up",
+    IN_DELIVERY: "In Delivery",
+    DELIVERED: "Delivered",
+    CANCELLED: "Cancelled",
+    EXPIRED: "Expired",
+  }[status] ?? status;
+}
+
+function badgeForStatus(status: OrderStatus): { label: string; color: "orange" | "blue" } {
+  const blue: OrderStatus[] = ["PAID", "READY_FOR_PICKUP", "PICKED_UP", "IN_DELIVERY"];
+  return {
+    label: statusLabel(status),
+    color: blue.includes(status) ? "blue" : "orange",
+  };
+}
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
 
 export default function OrdersScreen() {
   const [activeTab, setActiveTab] = useState<Tab>("Active");
   const router = useRouter();
+  const dispatch = useAppDispatch();
+  const { orders, isFetching, error } = useAppSelector((state) => state.orders);
+  const cartItemCount = useAppSelector((state) => state.cart.itemCount);
+
+  useEffect(() => {
+    dispatch(fetchOrders());
+  }, [dispatch]);
+
+  const activeOrders = orders.filter((o) => ACTIVE_STATUSES.includes(o.status));
+  const deliveredOrders = orders.filter((o) => o.status === "DELIVERED");
+  const cancelledOrders = orders.filter((o) => o.status === "CANCELLED" || o.status === "EXPIRED");
+
+  function toActiveCard(order: Order) {
+    const firstItem = order.items?.[0];
+    const name = firstItem?.product?.name ?? "Order";
+    const image = firstItem?.product?.imageUrls?.[0] ?? "";
+    return {
+      id: order.id,
+      title: name + (order.items?.length > 1 ? ` +${order.items.length - 1} more` : ""),
+      store: order.deliveryZone?.name ?? "Campus Store",
+      orderId: `#${order.id.slice(0, 6).toUpperCase()}`,
+      eta: order.batch?.slotLabel ?? "—",
+      stage: statusLabel(order.status),
+      image,
+      badge: badgeForStatus(order.status),
+      primaryAction: { label: "Track Order", icon: "location-outline" },
+    };
+  }
+
+  function toRecentCard(order: Order) {
+    const firstItem = order.items?.[0];
+    return {
+      id: order.id,
+      title: firstItem?.product?.name ?? "Order",
+      date: formatDate(order.createdAt),
+      amount: `RWF ${(order.total ?? 0).toLocaleString()}`,
+      image: firstItem?.product?.imageUrls?.[0] ?? "",
+      action: "reorder" as const,
+    };
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
       {/* Header */}
       <View className="bg-white px-4 pt-2 pb-0 border-b border-slate-100">
-        {/* Title row with action icons */}
         <View className="flex-row items-center justify-between mb-4">
           <Text className="text-xl font-bold text-slate-900">Orders</Text>
-          <View className="flex-row items-center gap-3">
-            <TouchableOpacity
-              style={{ position: "relative" }}
-              onPress={() => router.push("/cart")}
-            >
-              <Ionicons name="cart-outline" size={24} color="#0F172A" />
+          <TouchableOpacity
+            style={{ position: "relative" }}
+            onPress={() => router.push("/cart")}
+          >
+            <Ionicons name="cart-outline" size={24} color="#0F172A" />
+            {cartItemCount > 0 && (
               <View style={styles.cartBadge}>
-                <Text style={styles.cartBadgeText}>2</Text>
+                <Text style={styles.cartBadgeText}>{cartItemCount}</Text>
               </View>
-            </TouchableOpacity>
-            <TouchableOpacity style={{ position: "relative" }}>
-              <Ionicons
-                name="notifications-outline"
-                size={22}
-                color="#0F172A"
-              />
-              <View style={styles.dotBadge} />
-            </TouchableOpacity>
-          </View>
+            )}
+          </TouchableOpacity>
         </View>
 
         {/* Tabs */}
@@ -109,9 +125,7 @@ export default function OrdersScreen() {
               >
                 <Text
                   className="text-sm font-semibold"
-                  style={
-                    isActive ? styles.activeTabText : styles.inactiveTabText
-                  }
+                  style={isActive ? styles.activeTabText : styles.inactiveTabText}
                 >
                   {tab}
                 </Text>
@@ -121,75 +135,116 @@ export default function OrdersScreen() {
         </View>
       </View>
 
-      <ScrollView
-        className="flex-1 px-4 pt-4"
-        showsVerticalScrollIndicator={false}
-      >
-        {activeTab === "Active" && (
-          <>
-            <Text className="text-lg font-bold text-slate-900 mb-4">
-              Ongoing Deliveries
-            </Text>
-
-            {ACTIVE_ORDERS.map((order) => (
-              <ActiveOrderCard
-                key={order.id}
-                {...order}
-                onPrimaryAction={
-                  order.primaryAction.label === "Track Order"
-                    ? () =>
+      {isFetching ? (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#1C74E9" />
+        </View>
+      ) : error ? (
+        <View className="flex-1 items-center justify-center px-6">
+          <Text className="text-red-500 text-center mb-4">{error}</Text>
+          <TouchableOpacity
+            onPress={() => dispatch(fetchOrders())}
+            className="bg-primary px-6 py-3 rounded-xl"
+          >
+            <Text className="text-white font-bold">Retry</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <ScrollView className="flex-1 px-4 pt-4" showsVerticalScrollIndicator={false}>
+          {activeTab === "Active" && (
+            <>
+              {activeOrders.length === 0 ? (
+                <View className="flex-1 items-center justify-center mt-20">
+                  <Ionicons name="bicycle-outline" size={48} color="#cbd5e1" />
+                  <Text className="text-base text-slate-400 font-semibold mt-3">
+                    No active orders
+                  </Text>
+                </View>
+              ) : (
+                <>
+                  <Text className="text-lg font-bold text-slate-900 mb-4">
+                    Ongoing Deliveries
+                  </Text>
+                  {activeOrders.map((order) => (
+                    <ActiveOrderCard
+                      key={order.id}
+                      {...toActiveCard(order)}
+                      onPrimaryAction={() =>
                         router.push({
                           pathname: "/(tabs)/orders/order-status",
                           params: { orderId: order.id },
                         })
-                    : undefined
+                      }
+                    />
+                  ))}
+                </>
+              )}
+
+              {deliveredOrders.length > 0 && (
+                <RecentlyDelivered
+                  items={deliveredOrders.slice(0, 3).map(toRecentCard)}
+                  onViewAll={() => setActiveTab("Delivered")}
+                  onPress={(id) =>
+                    router.push({
+                      pathname: "/(tabs)/orders/order-details",
+                      params: { orderId: id },
+                    })
+                  }
+                />
+              )}
+            </>
+          )}
+
+          {activeTab === "Delivered" && (
+            deliveredOrders.length === 0 ? (
+              <View className="flex-1 items-center justify-center mt-20">
+                <Ionicons name="checkmark-circle-outline" size={48} color="#cbd5e1" />
+                <Text className="text-base text-slate-400 font-semibold mt-3">
+                  No delivered orders yet
+                </Text>
+              </View>
+            ) : (
+              <RecentlyDelivered
+                items={deliveredOrders.map(toRecentCard)}
+                onPress={(id) =>
+                  router.push({
+                    pathname: "/(tabs)/orders/order-details",
+                    params: { orderId: id },
+                  })
                 }
               />
-            ))}
+            )
+          )}
 
-            <RecentlyDelivered
-              items={RECENT_ORDERS}
-              onPress={(id) =>
-                router.push({
-                  pathname: "/(tabs)/orders/order-details",
-                  params: { orderId: id },
-                })
-              }
-            />
-          </>
-        )}
+          {activeTab === "Cancelled" && (
+            cancelledOrders.length === 0 ? (
+              <View className="flex-1 items-center justify-center mt-20">
+                <Text className="text-base text-slate-400 font-semibold">
+                  No cancelled orders
+                </Text>
+              </View>
+            ) : (
+              <RecentlyDelivered
+                items={cancelledOrders.map(toRecentCard)}
+                onPress={(id) =>
+                  router.push({
+                    pathname: "/(tabs)/orders/order-details",
+                    params: { orderId: id },
+                  })
+                }
+              />
+            )
+          )}
 
-        {activeTab === "Delivered" && (
-          <RecentlyDelivered
-            items={RECENT_ORDERS}
-            onPress={(id) =>
-              router.push({
-                pathname: "/(tabs)/orders/order-details",
-                params: { orderId: id },
-              })
-            }
-          />
-        )}
-
-        {activeTab === "Cancelled" && (
-          <View className="flex-1 items-center justify-center mt-20">
-            <Text className="text-base text-slate-400 font-semibold">
-              No cancelled orders
-            </Text>
-          </View>
-        )}
-
-        <View className="h-8" />
-      </ScrollView>
+          <View className="h-8" />
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  activeTabBorder: {
-    borderBottomWidth: 2,
-    borderBottomColor: "#1C74E9",
-  },
+  activeTabBorder: { borderBottomWidth: 2, borderBottomColor: "#1C74E9" },
   activeTabText: { color: "#1C74E9" },
   inactiveTabText: { color: "#94a3b8" },
   cartBadge: {
@@ -203,18 +258,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  cartBadgeText: {
-    fontSize: 9,
-    color: "white",
-    fontWeight: "700",
-  },
-  dotBadge: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#ef4444",
-  },
+  cartBadgeText: { fontSize: 9, color: "white", fontWeight: "700" },
 });

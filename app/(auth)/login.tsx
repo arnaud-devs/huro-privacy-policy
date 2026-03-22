@@ -37,9 +37,6 @@ export default function LoginScreen() {
     if (loginUser.fulfilled.match(resultAction)) {
       const user = resultAction.payload.data.user;
 
-      console.log("Logged in user role:", user?.role); // For debugging
-
-      // Check the user role and render the dashboard accordingly (case-insensitive)
       if (user?.role?.toUpperCase() === "RIDER") {
         router.replace("/(rider)");
       } else {

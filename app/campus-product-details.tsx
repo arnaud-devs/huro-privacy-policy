@@ -3,6 +3,8 @@ import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   ScrollView,
   Share,
   StyleSheet,
@@ -11,150 +13,48 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-interface Product {
-  id: string;
-  name: string;
-  price: string;
-  badge?: string;
-  image: string;
-  seller: string;
-  sellerVerified: boolean;
-  description: string;
-  batchTime: string;
-  pickupAt: string;
-}
-
-const PRODUCTS: Record<string, Product> = {
-  "1": {
-    id: "1",
-    name: "Chapati + Soda",
-    price: "1500 RWF",
-    badge: "Hot Deal",
-    image:
-      "https://images.unsplash.com/photo-1565299507177-b0ac66763828?auto=format&fit=crop&w=800&q=80",
-    seller: "Campus Bistro",
-    sellerVerified: true,
-    description:
-      "Freshly made flaky chapati paired with your choice of a chilled 300ml soda. Perfect for a quick lunch or late-night study session. Our batch delivery ensures your food arrives warm and fresh.",
-    batchTime: "12:00 PM\nToday",
-    pickupAt: "Main Gate",
-  },
-  "2": {
-    id: "2",
-    name: "Lay's Classic Chips",
-    price: "RWF 150",
-    image:
-      "https://images.unsplash.com/photo-1566478989037-e6281fd470fa?auto=format&fit=crop&w=800&q=80",
-    seller: "Campus Store",
-    sellerVerified: true,
-    description:
-      "Crispy Lay's Classic Chips in the original salted flavour. Great for a quick snack between classes.",
-    batchTime: "On Demand",
-    pickupAt: "Block A",
-  },
-  "3": {
-    id: "3",
-    name: "A4 Print Paper (10 sheets)",
-    price: "RWF 180",
-    image:
-      "https://images.unsplash.com/photo-1588666579624-9b22e11a3dbe?auto=format&fit=crop&w=800&q=80",
-    seller: "Campus Store",
-    sellerVerified: true,
-    description:
-      "High-quality A4 80gsm print paper, sold in packs of 10 sheets. Perfect for printing assignments and notes.",
-    batchTime: "On Demand",
-    pickupAt: "Library",
-  },
-  "4": {
-    id: "4",
-    name: "Fast USB-C Cable",
-    price: "RWF 180",
-    image:
-      "https://images.unsplash.com/photo-1624823183533-3d0b2ac84587?auto=format&fit=crop&w=800&q=80",
-    seller: "Tech Corner",
-    sellerVerified: true,
-    description:
-      "Braided USB-C fast charging cable, 1m length. Compatible with all USB-C devices including phones and laptops.",
-    batchTime: "On Demand",
-    pickupAt: "Tech Corner",
-  },
-  "5": {
-    id: "5",
-    name: "Spiral Notebook A5",
-    price: "RWF 180",
-    image:
-      "https://images.unsplash.com/photo-1531346878377-a5406c59b207?auto=format&fit=crop&w=800&q=80",
-    seller: "Campus Store",
-    sellerVerified: true,
-    description:
-      "100-page A5 spiral notebook with lined pages. Durable cover and smooth paper, ideal for lectures and study notes.",
-    batchTime: "On Demand",
-    pickupAt: "Block A",
-  },
-  "6": {
-    id: "6",
-    name: "Fresh Milk 1L",
-    price: "RWF 180",
-    image:
-      "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80",
-    seller: "Campus Bistro",
-    sellerVerified: true,
-    description:
-      "Fresh whole milk, 1 litre. Sourced daily from local farms. Great for cereals, coffee, or a straight-up glass.",
-    batchTime: "7:00 AM\nToday",
-    pickupAt: "Cafeteria",
-  },
-  "7": {
-    id: "7",
-    name: "Gel Pen Set (3pcs)",
-    price: "RWF 180",
-    image:
-      "https://images.unsplash.com/photo-1585336261022-680e295ce3fe?auto=format&fit=crop&w=800&q=80",
-    seller: "Campus Store",
-    sellerVerified: true,
-    description:
-      "Set of 3 smooth-writing 0.5mm gel pens in black, blue, and red. Ideal for note-taking and assignments.",
-    batchTime: "On Demand",
-    pickupAt: "Block A",
-  },
-  "deal-1": {
-    id: "deal-1",
-    name: "Chapati + Soda Combo",
-    price: "1,500 RWF",
-    badge: "Hot Deal",
-    image:
-      "https://images.unsplash.com/photo-1565299507177-b0ac66763828?auto=format&fit=crop&w=800&q=80",
-    seller: "Campus Bistro",
-    sellerVerified: true,
-    description:
-      "Freshly made flaky chapati paired with your choice of a chilled 300ml soda. Perfect for a quick lunch or late-night study session. Our batch delivery ensures your food arrives warm and fresh.",
-    batchTime: "12:00 PM\nToday",
-    pickupAt: "Main Gate",
-  },
-  "deal-2": {
-    id: "deal-2",
-    name: "Late Night Snacks",
-    price: "3,000 RWF",
-    image:
-      "https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?auto=format&fit=crop&w=800&q=80",
-    seller: "Campus Bistro",
-    sellerVerified: true,
-    description:
-      "A curated late-night snack bundle with chips, a drink, and a sweet treat. Available from 8 PM every night.",
-    batchTime: "8:00 PM\nToday",
-    pickupAt: "Main Gate",
-  },
-};
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { addToCart } from "@/store/slices/cartSlice";
 
 export default function CampusProductDetailsScreen() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const product = PRODUCTS[id ?? "1"] ?? PRODUCTS["1"];
+  const product = useAppSelector((state) =>
+    state.products.products.find((p) => p.id === id)
+  );
+  const isAdding = useAppSelector((state) => state.cart.isAdding);
   const [quantity, setQuantity] = useState(1);
 
+  async function handleAddToCart() {
+    if (!product) return;
+    const result = await dispatch(addToCart({ productId: product.id, quantity }));
+    if (addToCart.fulfilled.match(result)) {
+      Alert.alert("Added to cart", `${product.name} × ${quantity} added successfully.`, [
+        { text: "View Cart", onPress: () => router.push("/cart") },
+        { text: "Continue Shopping", style: "cancel" },
+      ]);
+    } else {
+      Alert.alert("Error", (result.payload as string) || "Failed to add item to cart.");
+    }
+  }
+
+  if (!product) {
+    return (
+      <SafeAreaView className="flex-1 bg-white items-center justify-center" edges={["top"]}>
+        <TouchableOpacity onPress={() => router.back()} className="absolute top-14 left-4">
+          <Ionicons name="arrow-back" size={24} color="#1e293b" />
+        </TouchableOpacity>
+        <Text className="text-slate-400 text-sm">Product not found.</Text>
+      </SafeAreaView>
+    );
+  }
+
+  const basePrice = parseFloat(product.price);
+  const displayPrice = product.promotionPrice ?? basePrice;
+
   async function handleShare() {
-    await Share.share({ message: `Check out ${product.name} for ${product.price} on HuzaGo!` });
+    await Share.share({ message: `Check out ${product!.name} for RWF ${displayPrice.toLocaleString()} on HuzaGo!` });
   }
 
   return (
@@ -181,26 +81,33 @@ export default function CampusProductDetailsScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 110 }}>
         {/* Hero image */}
         <Image
-          source={{ uri: product.image }}
+          source={{ uri: product.imageUrls?.[0] }}
           style={styles.heroImage}
           contentFit="cover"
         />
 
         <View className="px-4 pt-4">
-          {/* Name + badge */}
+          {/* Name + sale badge */}
           <View className="flex-row items-start justify-between mb-1">
             <Text className="text-2xl font-bold text-slate-800 flex-1 mr-3">
               {product.name}
             </Text>
-            {product.badge && (
+            {product.promotionPrice && (
               <View style={styles.badge}>
-                <Text style={styles.badgeText}>{product.badge}</Text>
+                <Text style={styles.badgeText}>Sale</Text>
               </View>
             )}
           </View>
 
           {/* Price */}
-          <Text style={styles.price}>{product.price}</Text>
+          <View className="flex-row items-center gap-3 mb-4">
+            <Text style={styles.price}>RWF {displayPrice.toLocaleString()}</Text>
+            {product.promotionPrice && product.originalPrice && (
+              <Text className="text-slate-400 text-base line-through">
+                RWF {product.originalPrice.toLocaleString()}
+              </Text>
+            )}
+          </View>
 
           {/* Seller card */}
           <TouchableOpacity style={styles.sellerCard}>
@@ -208,9 +115,9 @@ export default function CampusProductDetailsScreen() {
               <Ionicons name="storefront-outline" size={20} color="#1C74E9" />
             </View>
             <View className="flex-1 ml-3">
-              <Text className="text-sm font-bold text-slate-800">{product.seller}</Text>
+              <Text className="text-sm font-bold text-slate-800">{product.seller.sellerName}</Text>
               <Text className="text-xs text-slate-500">
-                {product.sellerVerified ? "Verified Campus Seller" : "Campus Seller"}
+                {product.hasPickupLocation ? "Has Pickup Location" : "Campus Seller"}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
@@ -222,34 +129,20 @@ export default function CampusProductDetailsScreen() {
             {product.description}
           </Text>
 
-          {/* Delivery Model Info */}
+          {/* Stock info */}
           <View style={styles.deliveryCard}>
-            <Text style={styles.deliveryLabel}>DELIVERY MODEL INFO</Text>
+            <Text style={styles.deliveryLabel}>AVAILABILITY</Text>
             <View className="flex-row mt-3 gap-4">
               <View style={styles.deliveryItem}>
                 <View style={styles.deliveryIcon}>
-                  <Ionicons name="time-outline" size={18} color="#1C74E9" />
+                  <Ionicons name="cube-outline" size={18} color="#1C74E9" />
                 </View>
                 <View className="ml-2">
                   <Text className="text-xs text-slate-400 font-semibold uppercase tracking-wide">
-                    Batch Time
+                    In Stock
                   </Text>
                   <Text className="text-sm font-bold text-slate-800 mt-0.5">
-                    {product.batchTime}
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.deliveryDivider} />
-              <View style={styles.deliveryItem}>
-                <View style={styles.deliveryIcon}>
-                  <Ionicons name="location-outline" size={18} color="#1C74E9" />
-                </View>
-                <View className="ml-2">
-                  <Text className="text-xs text-slate-400 font-semibold uppercase tracking-wide">
-                    Pickup At
-                  </Text>
-                  <Text className="text-sm font-bold text-slate-800 mt-0.5">
-                    {product.pickupAt}
+                    {product.stockQuantity > 0 ? `${product.stockQuantity} left` : "Out of stock"}
                   </Text>
                 </View>
               </View>
@@ -278,9 +171,21 @@ export default function CampusProductDetailsScreen() {
         </View>
 
         {/* Add to Cart */}
-        <TouchableOpacity style={styles.cartBtn}>
-          <Ionicons name="cart-outline" size={20} color="white" />
-          <Text style={styles.cartBtnText}>Add to Cart</Text>
+        <TouchableOpacity
+          style={[styles.cartBtn, isAdding && { opacity: 0.7 }]}
+          onPress={handleAddToCart}
+          disabled={isAdding || product.stockQuantity === 0}
+        >
+          {isAdding ? (
+            <ActivityIndicator size="small" color="white" />
+          ) : (
+            <>
+              <Ionicons name="cart-outline" size={20} color="white" />
+              <Text style={styles.cartBtnText}>
+                {product.stockQuantity === 0 ? "Out of Stock" : "Add to Cart"}
+              </Text>
+            </>
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>

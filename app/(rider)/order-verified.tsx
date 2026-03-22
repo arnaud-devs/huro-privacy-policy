@@ -1,10 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function OrderVerifiedScreen() {
   const router = useRouter();
+  const { orderId, customerName } = useLocalSearchParams<{ orderId: string; customerName: string }>();
 
   const handleNextDelivery = () => {
     // Navigate back to active delivery
@@ -34,10 +35,12 @@ export default function OrderVerifiedScreen() {
           </View>
           
           <Text style={styles.title}>Order Verified</Text>
-          <Text style={styles.orderId}>Order #1045</Text>
-          
+          {orderId ? (
+            <Text style={styles.orderId}>Order #{orderId.slice(0, 6).toUpperCase()}</Text>
+          ) : null}
+
           <Text style={styles.subtitle}>
-            Delivery for <Text style={styles.boldText}>Alex Rivers</Text> is complete.
+            Delivery for <Text style={styles.boldText}>{customerName ?? "the customer"}</Text> is complete.
           </Text>
 
           <View style={styles.nextBatchCard}>

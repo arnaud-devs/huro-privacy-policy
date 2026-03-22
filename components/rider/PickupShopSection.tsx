@@ -42,18 +42,21 @@ const STATUS_META: Record<
 export function PickupShopSection({
   shop,
   onItemToggle,
+  onOrderPress,
 }: {
   shop: ShopBatch;
   onItemToggle?: (shopName: string, itemId: string) => void;
+  onOrderPress?: () => void;
 }) {
   return (
     <View style={styles.shopSection}>
       <View style={styles.shopHeader}>
-        <View style={styles.shopNameWrap}>
+        <TouchableOpacity style={styles.shopNameWrap} onPress={onOrderPress} activeOpacity={0.7}>
           <Ionicons name="storefront-outline" size={18} color="#475569" />
           <Text style={styles.shopName}>{shop.name}</Text>
           <Text style={styles.shopCount}>({shop.orders} orders)</Text>
-        </View>
+          {onOrderPress && <Ionicons name="chevron-forward" size={16} color="#94a3b8" />}
+        </TouchableOpacity>
         <TouchableOpacity>
           <Text style={styles.reportText}>Report</Text>
         </TouchableOpacity>

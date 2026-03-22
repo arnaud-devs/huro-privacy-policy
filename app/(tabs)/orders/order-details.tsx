@@ -1,125 +1,110 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect } from "react";
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchOrderById, OrderStatus } from "@/store/slices/ordersSlice";
 
-const ORDERS: Record<
-  string,
-  {
-    orderNumber: string;
-    status: "Delivered" | "Cancelled";
-    price: string;
-    placedAt: string;
-    product: { title: string; store: string; qty: number; image: string };
-    timeline: { label: string; time: string; note: string }[];
-    deliveryLocation: { name: string; address: string };
-  }
-> = {
-  "1": {
-    orderNumber: "#1243",
-    status: "Delivered",
-    price: "RWF 15,000",
-    placedAt: "Placed on Oct 24, 2:30 PM",
-    product: {
-      title: "Premium Wireless Headph...",
-      store: "TechHub Campus Store",
-      qty: 1,
-      image:
-        "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=400&q=80",
-    },
-    timeline: [
-      {
-        label: "Delivered",
-        time: "Oct 24, 4:15 PM",
-        note: "Received by Customer",
-      },
-      {
-        label: "Out for Delivery",
-        time: "Oct 24, 3:45 PM",
-        note: "Courier is nearby",
-      },
-      {
-        label: "Order Shipped",
-        time: "Oct 24, 3:00 PM",
-        note: "Leaves TechHub Store",
-      },
-      {
-        label: "Order Confirmed",
-        time: "Oct 24, 2:35 PM",
-        note: "Payment Verified",
-      },
-    ],
-    deliveryLocation: {
-      name: "UR CST Main Gate",
-      address:
-        "University of Rwanda, College of Science and Technology, Nyarugenge",
-    },
-  },
-  "2": {
-    orderNumber: "#1244",
-    status: "Delivered",
-    price: "RWF 12,500",
-    placedAt: "Placed on Oct 22, 1:10 PM",
-    product: {
-      title: "Double Cheese Combo",
-      store: "Campus Bites",
-      qty: 2,
-      image:
-        "https://images.unsplash.com/photo-1586816001966-79b736744398?auto=format&fit=crop&w=400&q=80",
-    },
-    timeline: [
-      {
-        label: "Delivered",
-        time: "Oct 22, 2:00 PM",
-        note: "Received by Customer",
-      },
-      {
-        label: "Out for Delivery",
-        time: "Oct 22, 1:45 PM",
-        note: "Courier is nearby",
-      },
-      {
-        label: "Order Shipped",
-        time: "Oct 22, 1:30 PM",
-        note: "Leaves Campus Bites",
-      },
-      {
-        label: "Order Confirmed",
-        time: "Oct 22, 1:12 PM",
-        note: "Payment Verified",
-      },
-    ],
-    deliveryLocation: {
-      name: "UR CST Main Gate",
-      address:
-        "University of Rwanda, College of Science and Technology, Nyarugenge",
-    },
-  },
-};
+const STATUS_STEPS: OrderStatus[] = [
+  "PENDING_PAYMENT",
+  "PAID",
+  "PREPARING",
+  "READY_FOR_PICKUP",
+  "IN_DELIVERY",
+  "DELIVERED",
+];
+
+function stepLabel(status: OrderStatus): string {
+  return {
+    PENDING_PAYMENT: "Pending Payment",
+    PAID: "Payment Confirmed",
+    PREPARING: "Preparing Order",
+    READY_FOR_PICKUP: "Ready for Pickup",
+    PICKED_UP: "Picked Up",
+    IN_DELIVERY: "Out for Delivery",
+    DELIVERED: "Delivered",
+    CANCELLED: "Cancelled",
+    EXPIRED: "Expired",
+  }[status] ?? status;
+}
+
+function statusColor(status: OrderStatus) {
+  if (status === "DELIVERED") return { bg: "#dcfce7", text: "#16a34a" };
+  if (status === "CANCELLED" || status === "EXPIRED") return { bg: "#fee2e2", text: "#dc2626" };
+  return { bg: "#eff6ff", text: "#1C74E9" };
+}
+
+function fmt(n: number) {
+  return (n ?? 0).toLocaleString();
+}
 
 export default function OrderDetailsScreen() {
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const router = useRouter();
-  const order = ORDERS[orderId ?? "1"];
+  const dispatch = useAppDispatch();
 
-  if (!order) {
+  const { orderDetail, isLoadingDetail, detailError } = useAppSelector(
+    (state) => state.orders
+  );
+
+  useEffect(() => {
+    if (orderId) dispatch(fetchOrderById(orderId));
+  }, [orderId]);
+
+  if (isLoadingDetail) {
     return (
-      <SafeAreaView className="flex-1 bg-white items-center justify-center">
-        <Text className="text-base text-slate-500">Order not found</Text>
+      <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
+        <View className="flex-row items-center px-4 py-3 bg-white border-b border-slate-100">
+          <TouchableOpacity onPress={() => router.back()} className="mr-3">
+            <Ionicons name="arrow-back" size={24} color="#0f172a" />
+          </TouchableOpacity>
+          <Text className="flex-1 text-lg font-bold text-slate-900 text-center mr-7">Order Details</Text>
+        </View>
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#1C74E9" />
+        </View>
       </SafeAreaView>
     );
   }
 
+  if (detailError || !orderDetail) {
+    return (
+      <SafeAreaView className="flex-1 bg-slate-50 items-center justify-center" edges={["top"]}>
+        <Text className="text-base text-slate-500 mb-4">{detailError ?? "Order not found"}</Text>
+        <TouchableOpacity onPress={() => orderId && dispatch(fetchOrderById(orderId))}
+          className="bg-primary px-6 py-3 rounded-xl">
+          <Text className="text-white font-bold">Retry</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
+  const color = statusColor(orderDetail.status);
+  const total = (orderDetail.subtotal ?? 0) + (orderDetail.deliveryFee ?? 0);
+  const firstItem = orderDetail.items?.[0];
+  const placedAt = new Date(orderDetail.createdAt).toLocaleString(undefined, {
+    month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+  });
+
+  // Build timeline steps
+  const currentIdx = STATUS_STEPS.indexOf(orderDetail.status);
+  const timelineSteps = STATUS_STEPS.map((s, i) => ({
+    label: stepLabel(s),
+    time: i <= currentIdx ? (i === currentIdx ? "Current" : "Done") : "Pending",
+    status: i < currentIdx ? "done" : i === currentIdx ? "active" : "pending",
+  }));
+
   return (
     <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
-      {/* Header */}
       <View className="flex-row items-center px-4 py-3 bg-white border-b border-slate-100">
         <TouchableOpacity onPress={() => router.back()} className="mr-3">
           <Ionicons name="arrow-back" size={24} color="#0f172a" />
@@ -130,150 +115,137 @@ export default function OrderDetailsScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
-        {/* Order summary card */}
+        {/* Summary card */}
         <View className="mx-4 mt-4 bg-white rounded-3xl p-4 border border-slate-100">
-          {/* Status + price */}
           <View className="flex-row items-center justify-between mb-2">
-            <View style={styles.statusBadge}>
-              <Text style={styles.statusText}>{order.status}</Text>
+            <View style={[styles.statusBadge, { backgroundColor: color.bg }]}>
+              <Text style={[styles.statusText, { color: color.text }]}>
+                {stepLabel(orderDetail.status)}
+              </Text>
             </View>
             <Text className="text-base font-bold text-primary">
-              {order.price}
+              RWF {fmt(total)}
             </Text>
           </View>
 
           <Text className="text-xl font-bold text-slate-900">
-            Order {order.orderNumber}
+            #{orderDetail.pickupSignature}
           </Text>
           <Text className="text-xs text-slate-500 mt-0.5 mb-4">
-            {order.placedAt}
+            Placed on {placedAt}
           </Text>
 
-          {/* Product row */}
-          <View className="flex-row items-center bg-slate-50 rounded-2xl p-3">
-            <Image
-              source={{ uri: order.product.image }}
-              style={styles.productImage}
-              contentFit="cover"
-            />
-            <View className="flex-1 ml-3">
-              <Text
-                className="text-sm font-bold text-slate-900"
-                numberOfLines={1}
-              >
-                {order.product.title}
-              </Text>
-              <Text className="text-xs text-slate-500 mt-0.5">
-                {order.product.store}
-              </Text>
-              <Text className="text-xs text-slate-400 mt-0.5">
-                Qty: {order.product.qty}
-              </Text>
+          {firstItem ? (
+            <View className="flex-row items-center bg-slate-50 rounded-2xl p-3">
+              <Image
+                source={firstItem.product?.imageUrls?.[0] ? { uri: firstItem.product.imageUrls[0] } : undefined}
+                style={styles.productImage}
+                contentFit="cover"
+              />
+              <View className="flex-1 ml-3">
+                <Text className="text-sm font-bold text-slate-900" numberOfLines={1}>
+                  {firstItem.product?.name ?? "Product"}
+                  {(orderDetail.items?.length ?? 0) > 1 ? ` +${orderDetail.items!.length - 1} more` : ""}
+                </Text>
+                <Text className="text-xs text-slate-500 mt-0.5">
+                  Qty: {firstItem.quantity}
+                </Text>
+              </View>
+            </View>
+          ) : null}
+
+          {/* Price breakdown */}
+          <View className="mt-4 pt-4 border-t border-slate-100">
+            <View className="flex-row justify-between mb-1">
+              <Text className="text-sm text-slate-500">Subtotal</Text>
+              <Text className="text-sm text-slate-900">RWF {fmt(orderDetail.subtotal)}</Text>
+            </View>
+            <View className="flex-row justify-between">
+              <Text className="text-sm text-slate-500">Delivery Fee</Text>
+              <Text className="text-sm text-slate-900">RWF {fmt(orderDetail.deliveryFee)}</Text>
             </View>
           </View>
         </View>
 
-        {/* Tracking Status */}
-        <View className="mx-4 mt-4 bg-white rounded-3xl p-4 border border-slate-100">
-          <Text className="text-xs font-bold text-primary uppercase tracking-widest mb-4">
-            Tracking Status
-          </Text>
-
-          {order.timeline.map((step, index) => {
-            const isLast = index === order.timeline.length - 1;
-            return (
-              <View key={index} className="flex-row">
-                {/* Dot + line */}
-                <View className="items-center mr-4" style={styles.dotCol}>
-                  <View style={styles.dot}>
-                    <Ionicons name="checkmark" size={12} color="white" />
+        {/* Tracking timeline */}
+        {orderDetail.status !== "CANCELLED" && orderDetail.status !== "EXPIRED" && (
+          <View className="mx-4 mt-4 bg-white rounded-3xl p-4 border border-slate-100">
+            <Text className="text-xs font-bold text-primary uppercase tracking-widest mb-4">
+              Tracking Status
+            </Text>
+            {timelineSteps.map((step, index) => {
+              const isLast = index === timelineSteps.length - 1;
+              return (
+                <View key={index} className="flex-row">
+                  <View className="items-center mr-4" style={styles.dotCol}>
+                    <View style={[
+                      styles.dot,
+                      step.status === "done" && styles.dotDone,
+                      step.status === "active" && styles.dotActive,
+                      step.status === "pending" && styles.dotPending,
+                    ]}>
+                      {step.status === "done" && <Ionicons name="checkmark" size={12} color="white" />}
+                    </View>
+                    {!isLast && <View style={[styles.connector,
+                      step.status === "pending" && { backgroundColor: "#e2e8f0" }]} />}
                   </View>
-                  {!isLast && <View style={styles.connector} />}
+                  <View className="pb-5 flex-1">
+                    <Text className="text-sm font-bold"
+                      style={{ color: step.status === "pending" ? "#94a3b8" : "#0f172a" }}>
+                      {step.label}
+                    </Text>
+                    <Text className="text-xs text-slate-400 mt-0.5">{step.time}</Text>
+                  </View>
                 </View>
+              );
+            })}
+          </View>
+        )}
 
-                {/* Text */}
-                <View className="pb-5 flex-1">
-                  <Text className="text-sm font-bold text-slate-900">
-                    {step.label}
-                  </Text>
-                  <Text className="text-xs text-slate-400 mt-0.5">
-                    {step.time} • {step.note}
-                  </Text>
-                </View>
-              </View>
-            );
-          })}
-        </View>
-
-        {/* Delivery Location */}
+        {/* Delivery location */}
         <View className="mx-4 mt-4 bg-white rounded-3xl p-4 border border-slate-100">
           <View className="flex-row items-center mb-2">
             <Ionicons name="location-outline" size={18} color="#0f172a" />
-            <Text className="text-base font-bold text-slate-900 ml-2">
-              Delivery Location
-            </Text>
+            <Text className="text-base font-bold text-slate-900 ml-2">Delivery Location</Text>
           </View>
           <Text className="text-base font-bold text-slate-900 mt-1">
-            {order.deliveryLocation.name}
+            {orderDetail.snapshotZoneName}
           </Text>
-          <Text className="text-sm text-slate-500 mt-1 leading-5">
-            {order.deliveryLocation.address}
-          </Text>
+          {orderDetail.customAddress ? (
+            <Text className="text-sm text-slate-500 mt-1">{orderDetail.customAddress}</Text>
+          ) : null}
         </View>
 
-        {/* Feedback button */}
-        <TouchableOpacity className="mx-4 mt-4 bg-white rounded-2xl py-4 flex-row items-center justify-center border border-slate-100">
-          <Ionicons name="chatbox-outline" size={18} color="#0f172a" />
-          <Text className="text-sm font-bold text-slate-900 ml-2">
-            Feedback
-          </Text>
-        </TouchableOpacity>
+        {/* Payment info */}
+        <View className="mx-4 mt-4 bg-white rounded-3xl p-4 border border-slate-100">
+          <View className="flex-row items-center mb-3">
+            <Ionicons name="card-outline" size={18} color="#0f172a" />
+            <Text className="text-base font-bold text-slate-900 ml-2">Payment</Text>
+          </View>
+          <View className="flex-row justify-between mb-1">
+            <Text className="text-sm text-slate-500">Name</Text>
+            <Text className="text-sm font-semibold text-slate-900">{orderDetail.snapshotName}</Text>
+          </View>
+          <View className="flex-row justify-between">
+            <Text className="text-sm text-slate-500">Phone</Text>
+            <Text className="text-sm font-semibold text-slate-900">{orderDetail.snapshotPhone}</Text>
+          </View>
+        </View>
 
         <View className="h-28" />
       </ScrollView>
-
-      {/* Bottom CTA */}
-      <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-100 px-4 py-4 pb-8">
-        <TouchableOpacity className="bg-primary flex-row items-center justify-center py-4 rounded-2xl">
-          <Ionicons name="list-outline" size={18} color="white" />
-          <Text className="text-white font-bold text-base ml-2">
-            Reorder Items
-          </Text>
-        </TouchableOpacity>
-      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  statusBadge: {
-    backgroundColor: "#dcfce7",
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 20,
-  },
-  statusText: { color: "#16a34a", fontSize: 12, fontWeight: "700" },
-  productImage: {
-    width: 52,
-    height: 52,
-    borderRadius: 12,
-    backgroundColor: "#f1f5f9",
-  },
+  statusBadge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 },
+  statusText: { fontSize: 12, fontWeight: "700" },
+  productImage: { width: 52, height: 52, borderRadius: 12, backgroundColor: "#f1f5f9" },
   dotCol: { width: 24 },
-  dot: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "#1C74E9",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  connector: {
-    width: 2,
-    flex: 1,
-    backgroundColor: "#e2e8f0",
-    marginTop: 2,
-    marginBottom: 2,
-    minHeight: 16,
-  },
+  dot: { width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  dotDone: { backgroundColor: "#1C74E9" },
+  dotActive: { backgroundColor: "#1C74E9" },
+  dotPending: { backgroundColor: "#e2e8f0" },
+  connector: { width: 2, flex: 1, backgroundColor: "#1C74E9", marginTop: 2, marginBottom: 2, minHeight: 16 },
 });

@@ -18,6 +18,7 @@ export default function MarketScreen() {
   const [activeTab, setActiveTab] = useState<"Campus Store" | "Used Market">(
     tab === "Used Market" ? "Used Market" : "Campus Store",
   );
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (tab === "Used Market" || tab === "Campus Store") {
@@ -34,8 +35,11 @@ export default function MarketScreen() {
 
         {activeTab === "Campus Store" ? (
           <>
-            <MarketCategories />
-            <ProductGrid />
+            <MarketCategories
+              selectedCategoryId={selectedCategoryId}
+              onCategorySelect={setSelectedCategoryId}
+            />
+            <ProductGrid categoryId={selectedCategoryId} />
           </>
         ) : (
           <>

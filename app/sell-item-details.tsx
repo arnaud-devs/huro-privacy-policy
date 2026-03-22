@@ -2,7 +2,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
+    KeyboardAvoidingView,
     Modal,
+    Platform,
     ScrollView,
     StyleSheet,
     Text,
@@ -60,9 +62,13 @@ export default function SellItemDetailsScreen() {
         <View style={styles.stepInactive} />
       </View>
 
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
         keyboardShouldPersistTaps="handled"
       >
         {/* Listing Title */}
@@ -155,6 +161,7 @@ export default function SellItemDetailsScreen() {
 
       {/* Bottom CTA */}
       <View style={styles.footer}>
+
         <TouchableOpacity
           className="bg-primary rounded-full py-4 items-center mx-4 mb-2"
           onPress={() => router.push("/sell-item-payment")}
@@ -166,6 +173,7 @@ export default function SellItemDetailsScreen() {
           Community Guidelines.
         </Text>
       </View>
+      </KeyboardAvoidingView>
 
       {/* Category Picker Modal */}
       <Modal
@@ -307,10 +315,6 @@ const styles = StyleSheet.create({
     borderColor: "#e2e8f0",
   },
   footer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
     paddingTop: 12,
     paddingBottom: 24,
     backgroundColor: "white",

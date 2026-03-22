@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
+    ActivityIndicator,
     ScrollView,
     StyleSheet,
     Text,
@@ -16,38 +17,54 @@ import {
     ShopBatch,
 } from "@/components/rider/PickupShopSection";
 import { PickupStatsGrid } from "@/components/rider/PickupStatsGrid";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchBatchDetail, fetchRiderOrders } from "@/store/slices/riderSlice";
 
-const INITIAL_SHOPS: ShopBatch[] = [
-  {
-    name: "Snack Shop",
-    orders: 6,
-    items: [
-      { id: "#1034", name: "Potato Chips (L)", status: "not-collected" },
-      { id: "#1035", name: "Soda Pack x2", status: "collected" },
-      { id: "#1036", name: "Ice Cream", status: "out-of-stock" },
-      { id: "#1037", name: "Energy Drink", status: "pending" },
-    ],
-  },
-  {
-    name: "Printing Shop",
-    orders: 4,
-    items: [
-      { id: "#1101", name: "A4 Documents (50p)", status: "pending" },
-      { id: "#1102", name: "Thesis Binding", status: "not-collected" },
-    ],
-  },
-];
+function ordersToShops(orders: any[]): ShopBatch[] {
+  return orders.map((order) => {
+    const items = order.orderItems ?? order.items ?? [];
+    const orderId = order.id ?? "";
+    return {
+      name: `Order #${orderId.slice(0, 6).toUpperCase()}`,
+      orders: items.length,
+      items: items.map((item: any) => {
+        const itemId = item.id ?? "";
+        return {
+          id: itemId.slice(0, 6).toUpperCase(),
+          name: `${item.productName ?? item.name ?? "Item"}${item.quantity > 1 ? ` x${item.quantity}` : ""}`,
+          status: "not-collected" as const,
+        };
+      }),
+    };
+  });
+}
 
 export default function PickupBatchScreen() {
   const router = useRouter();
-  const [shops, setShops] = useState<ShopBatch[]>(INITIAL_SHOPS);
+  const dispatch = useAppDispatch();
+  const { batchId } = useLocalSearchParams<{ batchId: string }>();
+  const { batchDetail, isLoadingBatchDetail, orders: riderOrders, isFetchingOrders } = useAppSelector((state) => state.rider);
 
-  const totalOrders = 26;
-  // Calculate newly picked up items natively based on interaction
+  useEffect(() => {
+    if (batchId) {
+      dispatch(fetchBatchDetail(batchId));
+      dispatch(fetchRiderOrders({ picked: false }));
+    }
+  }, [batchId]);
+
+  const [shops, setShops] = useState<ShopBatch[]>([]);
+
+  useEffect(() => {
+    if (riderOrders.length > 0) {
+      setShops(ordersToShops(riderOrders));
+    } else if (batchDetail?.orders) {
+      setShops(ordersToShops(batchDetail.orders));
+    }
+  }, [batchDetail]);
+
+  const totalOrders = batchDetail?.currentOrders ?? 0;
   const pickedUp = shops.reduce((total, shop) => {
-    return (
-      total + shop.items.filter((item) => item.status === "collected").length
-    );
+    return total + shop.items.filter((item) => item.status === "collected").length;
   }, 0);
 
   const handleItemToggle = (shopName: string, itemId: string) => {
@@ -87,20 +104,40 @@ export default function PickupBatchScreen() {
           >
             <Ionicons name="arrow-back" size={22} color="#1E293B" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Pickup Batch #124</Text>
+          <Text style={styles.headerTitle}>
+            {batchDetail?.id ? `Batch #${batchDetail.id.slice(0, 6).toUpperCase()}` : "Pickup Batch"}
+          </Text>
           <TouchableOpacity style={styles.iconButton}>
             <Ionicons name="warning-outline" size={22} color="#EF4444" />
           </TouchableOpacity>
         </View>
 
-        <PickupStatsGrid />
-        <PickupProgressCard pickedUp={pickedUp} totalOrders={totalOrders} />
+        {isLoadingBatchDetail || isFetchingOrders ? (
+          <View style={{ alignItems: "center", paddingVertical: 40 }}>
+            <ActivityIndicator size="large" color="#1C74E9" />
+          </View>
+        ) : (
+          <>
+            <PickupStatsGrid
+              totalOrders={batchDetail?.currentOrders ?? 0}
+              ridersCount={batchDetail?.riders?.length ?? 0}
+              zoneName={batchDetail?.deliveryZone?.name ?? "—"}
+            />
+            <PickupProgressCard pickedUp={pickedUp} totalOrders={totalOrders} />
+          </>
+        )}
 
-        {shops.map((shop) => (
+        {shops.map((shop, i) => (
           <PickupShopSection
             key={shop.name}
             shop={shop}
             onItemToggle={handleItemToggle}
+            onOrderPress={() =>
+              router.push({
+                pathname: "/(rider)/order-detail",
+                params: { orderId: riderOrders[i]?.id ?? "" },
+              })
+            }
           />
         ))}
 

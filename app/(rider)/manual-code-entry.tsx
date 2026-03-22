@@ -1,26 +1,63 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { verifyPickupSignature } from "@/store/slices/riderSlice";
+
+const CODE_LENGTH = 5;
 
 export default function ManualCodeEntryScreen() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
+  const { orderId } = useLocalSearchParams<{ orderId: string }>();
+  const { isVerifying } = useAppSelector((state) => state.rider);
   const [code, setCode] = useState("");
+  const inputRef = useRef<TextInput>(null);
 
   const handleBack = () => {
-    router.replace("/(rider)/scan-qr");
+    router.replace({
+      pathname: "/(rider)/scan-qr",
+      params: { orderId: orderId ?? "" },
+    });
   };
 
-  const handleKeyPress = (val: string) => {
-    if (val === "del") {
-      setCode((prev) => prev.slice(0, -1));
-    } else if (code.length < 4 && val !== "") {
-      setCode((prev) => prev + val);
+  const handleChangeText = (text: string) => {
+    const filtered = text.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, CODE_LENGTH);
+    setCode(filtered);
+  };
+
+  async function handleVerify() {
+    if (code.length < CODE_LENGTH || !orderId || isVerifying) return;
+    const result = await dispatch(verifyPickupSignature({ orderId, signature: code }));
+    if (verifyPickupSignature.fulfilled.match(result) && result.payload.valid) {
+      router.push({
+        pathname: "/(rider)/order-verified",
+        params: {
+          orderId,
+          customerName: result.payload.order.customerName,
+        },
+      });
+    } else {
+      Alert.alert(
+        "Invalid Code",
+        (result.payload as string) || "The code does not match. Please try again.",
+        [{ text: "Try Again", onPress: () => setCode("") }]
+      );
     }
-  };
+  }
 
-  const CodeDot = ({ char }: { char?: string }) => (
+  const CodeBox = ({ char }: { char?: string }) => (
     <View style={[styles.codeBox, char ? styles.codeBoxActive : null]}>
       {char ? (
         <Text style={styles.codeText}>{char}</Text>
@@ -29,23 +66,6 @@ export default function ManualCodeEntryScreen() {
       )}
     </View>
   );
-
-  const KeyButton = ({ val }: { val: string }) => {
-    if (val === "") return <View style={styles.keyBtnEmpty} />;
-    return (
-      <TouchableOpacity
-        style={styles.keyBtn}
-        onPress={() => handleKeyPress(val)}
-        activeOpacity={0.7}
-      >
-        {val === "del" ? (
-          <Ionicons name="backspace-outline" size={24} color="#334155" />
-        ) : (
-          <Text style={styles.keyText}>{val}</Text>
-        )}
-      </TouchableOpacity>
-    );
-  };
 
   return (
     <SafeAreaView style={styles.root} edges={["top", "bottom"]}>
@@ -59,72 +79,74 @@ export default function ManualCodeEntryScreen() {
       </View>
 
       <View style={styles.contentContainer}>
-        {/* Verification Info */}
         <View style={styles.topSection}>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>ORDER #1045</Text>
-          </View>
+          {orderId ? (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>ORDER #{orderId.slice(0, 6).toUpperCase()}</Text>
+            </View>
+          ) : null}
 
-          <Text style={styles.title}>Student Verification</Text>
+          <Text style={styles.title}>Pickup Verification</Text>
           <Text style={styles.subtitle}>
-            Ask the student for their 4-digit pickup code to complete the
-            delivery.
+            Ask the customer for their 5-character pickup code to complete the delivery.
           </Text>
 
-          <View style={styles.codeRow}>
-            <CodeDot char={code[0]} />
-            <CodeDot char={code[1]} />
-            <CodeDot char={code[2]} />
-            <CodeDot char={code[3]} />
-          </View>
+          {/* Hidden TextInput captures keyboard input */}
+          <TextInput
+            ref={inputRef}
+            style={styles.hiddenInput}
+            value={code}
+            onChangeText={handleChangeText}
+            autoCapitalize="characters"
+            autoCorrect={false}
+            maxLength={CODE_LENGTH}
+            keyboardType="default"
+          />
+
+          {/* Code boxes — tap to focus the input */}
+          <TouchableOpacity
+            style={styles.codeRow}
+            activeOpacity={1}
+            onPress={() => inputRef.current?.focus()}
+          >
+            <CodeBox char={code[0]} />
+            <CodeBox char={code[1]} />
+            <CodeBox char={code[2]} />
+            <CodeBox char={code[3]} />
+            <CodeBox char={code[4]} />
+          </TouchableOpacity>
+
+          <Text style={styles.tapHint}>Tap the boxes to enter the code</Text>
 
           <TouchableOpacity
             style={[
               styles.mainBtn,
-              code.length === 4 ? styles.mainBtnActive : styles.mainBtnInactive,
+              code.length === CODE_LENGTH && !isVerifying ? styles.mainBtnActive : styles.mainBtnInactive,
             ]}
             activeOpacity={0.85}
-            onPress={() => {
-              if (code.length === 4) {
-                router.push("/(rider)/order-verified");
-              }
-            }}
+            onPress={handleVerify}
+            disabled={code.length < CODE_LENGTH || isVerifying}
           >
-            <Text style={styles.mainBtnText}>Verify Code</Text>
+            {isVerifying ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.mainBtnText}>Verify Code</Text>
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.secondaryBtn}
-            onPress={() => router.replace("/(rider)/scan-qr")}
+            onPress={() =>
+              router.replace({
+                pathname: "/(rider)/scan-qr",
+                params: { orderId: orderId ?? "" },
+              })
+            }
             activeOpacity={0.7}
           >
             <Ionicons name="qr-code-outline" size={20} color="#334155" />
             <Text style={styles.secondaryBtnText}>Back to Scanner</Text>
           </TouchableOpacity>
-        </View>
-
-        {/* Custom Numpad */}
-        <View style={styles.numpad}>
-          <View style={styles.numRow}>
-            <KeyButton val="1" />
-            <KeyButton val="2" />
-            <KeyButton val="3" />
-          </View>
-          <View style={styles.numRow}>
-            <KeyButton val="4" />
-            <KeyButton val="5" />
-            <KeyButton val="6" />
-          </View>
-          <View style={styles.numRow}>
-            <KeyButton val="7" />
-            <KeyButton val="8" />
-            <KeyButton val="9" />
-          </View>
-          <View style={styles.numRow}>
-            <KeyButton val="" />
-            <KeyButton val="0" />
-            <KeyButton val="del" />
-          </View>
         </View>
       </View>
     </SafeAreaView>
@@ -161,11 +183,10 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
     backgroundColor: "#F8FAFC",
-    justifyContent: "space-between",
   },
   topSection: {
     paddingHorizontal: 24,
-    paddingTop: 40,
+    paddingTop: 48,
     alignItems: "center",
   },
   badge: {
@@ -195,13 +216,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginBottom: 32,
   },
+  hiddenInput: {
+    position: "absolute",
+    width: 0,
+    height: 0,
+    opacity: 0,
+  },
   codeRow: {
     flexDirection: "row",
-    gap: 12,
-    marginBottom: 40,
+    gap: 10,
+    marginBottom: 12,
   },
   codeBox: {
-    width: 60,
+    width: 54,
     height: 64,
     backgroundColor: "#FFFFFF",
     borderWidth: 1.5,
@@ -215,7 +242,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   codeText: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: "800",
     color: "#0F172A",
   },
@@ -225,6 +252,11 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: "#94A3B8",
   },
+  tapHint: {
+    fontSize: 12,
+    color: "#94A3B8",
+    marginBottom: 36,
+  },
   mainBtn: {
     width: "100%",
     height: 56,
@@ -232,19 +264,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,
+  },
+  mainBtnActive: {
+    backgroundColor: "#1C74E9",
     shadowColor: "#1C74E9",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 4,
   },
-  mainBtnActive: {
-    backgroundColor: "#1C74E9",
-  },
   mainBtnInactive: {
     backgroundColor: "#94A3B8",
-    shadowOpacity: 0,
-    elevation: 0,
   },
   mainBtnText: {
     color: "#FFFFFF",
@@ -267,37 +297,5 @@ const styles = StyleSheet.create({
     color: "#334155",
     fontSize: 15,
     fontWeight: "700",
-  },
-  numpad: {
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 32,
-    borderTopWidth: 1,
-    borderTopColor: "#F1F5F9",
-    gap: 12,
-  },
-  numRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  keyBtn: {
-    flex: 1,
-    height: 56,
-    backgroundColor: "#F8FAFC",
-    borderRadius: 14,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  keyBtnEmpty: {
-    flex: 1,
-    height: 56,
-    backgroundColor: "transparent",
-  },
-  keyText: {
-    fontSize: 22,
-    fontWeight: "600",
-    color: "#0F172A",
   },
 });

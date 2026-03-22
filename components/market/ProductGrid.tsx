@@ -1,110 +1,161 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { Text, TouchableOpacity, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Animated, Text, TouchableOpacity, View } from "react-native";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchProducts } from "@/store/slices/productsSlice";
+import { addToCart } from "@/store/slices/cartSlice";
 
-const PRODUCTS = [
-  {
-    id: "1",
-    name: "Lay's Classic Chips",
-    price: "RWF 150",
-    image:
-      "https://images.unsplash.com/photo-1566478989037-e6281fd470fa?auto=format&fit=crop&w=400&q=80",
-  },
-  {
-    id: "2",
-    name: "A4 Print Paper (10...",
-    price: "RWF 180",
-    image:
-      "https://images.unsplash.com/photo-1588666579624-9b22e11a3dbe?auto=format&fit=crop&w=400&q=80",
-  },
-  {
-    id: "3",
-    name: "Fast USB-C Cable...",
-    price: "RWF 180",
-    image:
-      "https://images.unsplash.com/photo-1624823183533-3d0b2ac84587?auto=format&fit=crop&w=400&q=80",
-  },
-  {
-    id: "4",
-    name: "Spiral Notebook A5",
-    price: "RWF 180",
-    image:
-      "https://images.unsplash.com/photo-1531346878377-a5406c59b207?auto=format&fit=crop&w=400&q=80",
-  },
-  {
-    id: "5",
-    name: "Fresh Milk 1L",
-    price: "RWF 180",
-    image:
-      "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=400&q=80",
-  },
-  {
-    id: "6",
-    name: "Gel Pen Set (3pcs)",
-    price: "RWF 180",
-    image:
-      "https://images.unsplash.com/photo-1585336261022-680e295ce3fe?auto=format&fit=crop&w=400&q=80",
-  },
-];
+interface Props {
+  categoryId?: string;
+}
 
-export default function ProductGrid() {
+export default function ProductGrid({ categoryId }: Props) {
   const router = useRouter();
+  const dispatch = useAppDispatch();
+  const { products, isLoading, error } = useAppSelector((state) => state.products);
+  const [toastId, setToastId] = useState<string | null>(null);
+  const toastOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    dispatch(fetchProducts({ categoryId, sortBy: "newest" }));
+  }, [dispatch, categoryId]);
+
+  function showToast(productId: string) {
+    setToastId(productId);
+    Animated.sequence([
+      Animated.timing(toastOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.delay(1400),
+      Animated.timing(toastOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+    ]).start(() => setToastId(null));
+  }
+
+  async function handleAddToCart(productId: string) {
+    const result = await dispatch(addToCart({ productId, quantity: 1 }));
+    if (addToCart.fulfilled.match(result)) {
+      showToast(productId);
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <View className="py-10 items-center">
+        <ActivityIndicator size="small" color="#1C74E9" />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View className="py-6 px-4 items-center">
+        <Text className="text-sm text-red-500">{error}</Text>
+      </View>
+    );
+  }
+
+  if (products.length === 0) {
+    return (
+      <View className="py-10 items-center px-4">
+        <Text className="text-sm text-slate-400">No products found.</Text>
+      </View>
+    );
+  }
+
   return (
     <View className="px-4 mt-2 mb-6">
       <View className="flex-row items-center justify-between mb-4">
         <Text className="text-lg font-bold text-slate-900">Nearby Shops</Text>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => dispatch(fetchProducts({ sortBy: "newest" }))}>
           <Text className="text-primary font-bold text-sm">See all</Text>
         </TouchableOpacity>
       </View>
 
       <View className="flex-row flex-wrap justify-between">
-        {PRODUCTS.map((product) => (
-          <View
-            key={product.id}
-            className="w-[48%] bg-white rounded-[20px] p-2 mb-4 border border-slate-100 shadow-sm"
-          >
-            <TouchableOpacity
-              onPress={() =>
-                router.push({
-                  pathname: "/campus-product-details",
-                  params: { id: product.id },
-                })
-              }
+        {products.map((product) => {
+          const basePrice = parseFloat(product.price);
+          const displayPrice = product.promotionPrice ?? basePrice;
+
+          return (
+            <View
+              key={product.id}
+              className="w-[48%] bg-white rounded-[20px] p-2 mb-4 border border-slate-100 shadow-sm"
             >
-              <View className="relative">
-                <Image
-                  source={{ uri: product.image }}
-                  className="w-full h-[140px] rounded-2xl bg-slate-100"
-                  contentFit="cover"
-                />
-                <TouchableOpacity className="absolute top-2 right-2 w-7 h-7 bg-white/90 rounded-full items-center justify-center">
-                  <Ionicons name="heart-outline" size={16} color="#64748B" />
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                onPress={() =>
+                  router.push({
+                    pathname: "/campus-product-details",
+                    params: { id: product.id },
+                  })
+                }
+              >
+                <View className="relative">
+                  <Image
+                    source={{ uri: product.imageUrls?.[0] }}
+                    className="w-full h-[140px] rounded-2xl bg-slate-100"
+                    contentFit="cover"
+                  />
+                  {product.promotionPrice && (
+                    <View className="absolute top-2 left-2 bg-amber-100 rounded-lg px-2 py-0.5">
+                      <Text className="text-xs font-bold text-amber-600">Sale</Text>
+                    </View>
+                  )}
+                  <TouchableOpacity className="absolute top-2 right-2 w-7 h-7 bg-white/90 rounded-full items-center justify-center">
+                    <Ionicons name="heart-outline" size={16} color="#64748B" />
+                  </TouchableOpacity>
+                </View>
 
-              <View className="mt-3 mb-2 px-1">
-                <Text
-                  className="text-sm font-bold text-slate-900"
-                  numberOfLines={1}
+                <View className="mt-3 mb-2 px-1">
+                  <Text className="text-sm font-bold text-slate-900" numberOfLines={1}>
+                    {product.name}
+                  </Text>
+                  <View className="flex-row items-center gap-2">
+                    <Text className="text-primary font-extrabold text-base mt-1">
+                      RWF {displayPrice.toLocaleString()}
+                    </Text>
+                    {product.promotionPrice && product.originalPrice && (
+                      <Text className="text-slate-400 text-xs mt-1 line-through">
+                        RWF {product.originalPrice.toLocaleString()}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                className="bg-primary flex-row items-center justify-center py-2.5 rounded-xl mt-auto"
+                onPress={() => handleAddToCart(product.id)}
+              >
+                <Ionicons name="cart-outline" size={16} color="white" />
+                <Text className="text-white font-bold text-xs ml-1.5">Add to cart</Text>
+              </TouchableOpacity>
+
+              {toastId === product.id && (
+                <Animated.View
+                  style={{
+                    opacity: toastOpacity,
+                    position: "absolute",
+                    bottom: 48,
+                    left: 8,
+                    right: 8,
+                    backgroundColor: "#0f172a",
+                    borderRadius: 10,
+                    paddingVertical: 7,
+                    paddingHorizontal: 10,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
                 >
-                  {product.name}
-                </Text>
-                <Text className="text-primary font-extrabold text-base mt-1">
-                  {product.price}
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity className="bg-primary flex-row items-center justify-center py-2.5 rounded-xl mt-auto">
-              <Ionicons name="cart-outline" size={16} color="white" />
-              <Text className="text-white font-bold text-xs ml-1.5">
-                Add to cart
-              </Text>
-            </TouchableOpacity>
-          </View>
-        ))}
+                  <Ionicons name="checkmark-circle" size={14} color="#4ade80" />
+                  <Text style={{ color: "white", fontSize: 11, fontWeight: "600" }}>
+                    Added to cart!
+                  </Text>
+                </Animated.View>
+              )}
+            </View>
+          );
+        })}
       </View>
     </View>
   );
