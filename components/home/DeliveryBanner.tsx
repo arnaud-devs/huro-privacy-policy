@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Alert, Text, TouchableOpacity, View } from "react-native";
 
+import { useAppSelector } from "@/store/hooks";
 import { Batch } from "@/store/slices/batchesSlice";
 
 function formatCountdown(scheduledAt: string): string {
@@ -19,6 +20,22 @@ interface Props {
 
 export default function DeliveryBanner({ batch }: Props) {
   const router = useRouter();
+  const itemCount = useAppSelector((state) => state.cart.itemCount);
+
+  const handleJoinBatch = () => {
+    if (itemCount === 0) {
+      Alert.alert(
+        "Your cart is empty",
+        "Browse the market and add items before joining a batch delivery.",
+        [
+          { text: "Shop Now", onPress: () => router.push("/(tabs)/market") },
+          { text: "Cancel", style: "cancel" },
+        ]
+      );
+    } else {
+      router.push("/cart");
+    }
+  };
 
   if (!batch) {
     return (
@@ -73,7 +90,7 @@ export default function DeliveryBanner({ batch }: Props) {
 
       <TouchableOpacity
         className="bg-white rounded-xl h-11 flex-row justify-center items-center"
-        onPress={() => router.push("/cart")}
+        onPress={handleJoinBatch}
       >
         <Ionicons name="cart-outline" size={20} color="#1C74E9" />
         <Text className="text-primary font-bold text-base ml-2">

@@ -29,6 +29,7 @@ export default function OrderCheckoutScreen() {
   const { isPlacing } = useAppSelector((state) => state.orders);
   const cartItems = useAppSelector((state) => state.cart.items);
   const allProducts = useAppSelector((state) => state.products.products);
+  const user = useAppSelector((state) => state.user.user);
 
   const params = useLocalSearchParams<{
     subtotal: string;
@@ -49,8 +50,8 @@ export default function OrderCheckoutScreen() {
   const itemName = firstProduct?.name ?? firstItem?.product?.name ?? "Your order";
   const itemImage = firstProduct?.imageUrls?.[0] ?? firstItem?.product?.imageUrls?.[0];
 
-  const [momoPhone, setMomoPhone] = useState("");
-  const [momoName, setMomoName] = useState("");
+  const [momoPhone, setMomoPhone] = useState(() => user?.phone ?? "");
+  const [momoName, setMomoName] = useState(() => user?.fullName ?? "");
   const [deliveryNote, setDeliveryNote] = useState("");
 
   async function handlePlaceOrder() {
@@ -87,7 +88,9 @@ export default function OrderCheckoutScreen() {
     );
 
     if (placeOrder.fulfilled.match(result)) {
-      router.replace("/orders/order-status");
+      const p = result.payload as any;
+      const newOrderId = p?.data?.id ?? p?.data?.order?.id ?? p?.id ?? "";
+      router.replace({ pathname: "/orders/order-status", params: { orderId: newOrderId } });
     } else {
       const msg = (result.payload as string) ?? "";
       if (msg.toLowerCase().includes("profile")) {
@@ -109,7 +112,8 @@ export default function OrderCheckoutScreen() {
             deliveryNote: deliveryNote.trim() || undefined,
           }));
           if (placeOrder.fulfilled.match(retryResult)) {
-            router.replace("/orders/order-status");
+            const retryOrderId = (retryResult.payload as any)?.data?.id ?? (retryResult.payload as any)?.id ?? "";
+            router.replace({ pathname: "/orders/order-status", params: { orderId: retryOrderId } });
           } else {
             Alert.alert("Order Failed", (retryResult.payload as string) || "Please try again.");
           }
@@ -195,7 +199,14 @@ export default function OrderCheckoutScreen() {
               <Ionicons name="checkmark" size={14} color="white" />
             </View>
           </View>
-
+          {user?.phone || user?.fullName ? (
+            <View style={styles.prefillHint}>
+              <Ionicons name="information-circle-outline" size={15} color="#1C74E9" />
+              <Text style={styles.prefillHintText}>
+                Pre-filled from your profile. Tap a field to change it if it don't match the one you are using paying.
+              </Text>
+            </View>
+          ) : null}
           {/* MoMo Phone */}
           <Text style={styles.fieldLabel}>MoMo Phone Number</Text>
           <TextInput
@@ -368,4 +379,20 @@ const styles = StyleSheet.create({
   ctaText: { fontSize: 16, fontWeight: "700", color: "white" },
   terms: { textAlign: "center", fontSize: 12, color: "#94a3b8", marginTop: 10, lineHeight: 18 },
   termsLink: { color: "#1C74E9" },
+  prefillHint: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#eff6ff",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 16,
+  },
+  prefillHintText: {
+    flex: 1,
+    fontSize: 12,
+    color: "#1C74E9",
+    lineHeight: 18,
+  },
 });

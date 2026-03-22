@@ -13,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import ConversationItem, {
   Conversation,
 } from "@/components/messages/ConversationItem";
+import CartIconButton from "@/components/common/CartIconButton";
 
 type Filter = "All" | "Unread";
 
@@ -79,15 +80,7 @@ export default function MessagesScreen() {
           <TouchableOpacity>
             <Ionicons name="search-outline" size={22} color="#0f172a" />
           </TouchableOpacity>
-          <TouchableOpacity
-            style={{ position: "relative" }}
-            onPress={() => router.push("/cart")}
-          >
-            <Ionicons name="cart-outline" size={24} color="#0F172A" />
-            <View style={styles.cartBadge}>
-              <Text style={styles.cartBadgeText}>2</Text>
-            </View>
-          </TouchableOpacity>
+          <CartIconButton />
           <TouchableOpacity style={{ position: "relative" }}>
             <Ionicons name="notifications-outline" size={22} color="#0F172A" />
             <View style={styles.dotBadge} />
@@ -147,22 +140,6 @@ const styles = StyleSheet.create({
   pillInactive: { backgroundColor: "#f1f5f9" },
   pillTextActive: { color: "#ffffff" },
   pillTextInactive: { color: "#64748b" },
-  cartBadge: {
-    position: "absolute",
-    top: -6,
-    right: -6,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: "#1C74E9",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cartBadgeText: {
-    fontSize: 9,
-    color: "white",
-    fontWeight: "700",
-  },
   dotBadge: {
     position: "absolute",
     top: 0,
