@@ -72,6 +72,7 @@ interface OrdersState {
   isCancelling: boolean;
   orders: Order[];
   orderDetail: OrderDetail | null;
+  orderDetailsMap: Record<string, OrderDetail>;
   error: string | null;
   detailError: string | null;
   cancelError: string | null;
@@ -86,6 +87,7 @@ const initialState: OrdersState = {
   isCancelling: false,
   orders: [],
   orderDetail: null,
+  orderDetailsMap: {},
   error: null,
   detailError: null,
   cancelError: null,
@@ -112,12 +114,18 @@ export const fetchOrderById = createAsyncThunk<
       });
 
       const data = await response.json();
-      console.log('[fetchOrderById] status:', response.status, 'body:', JSON.stringify(data, null, 2));
       if (!response.ok) return rejectWithValue(data.message || 'Failed to fetch order');
       const raw = data.data?.order ?? data.data;
+      const rawItems: any[] = raw.orderItems ?? raw.items ?? [];
       return {
         ...raw,
-        items: raw.orderItems ?? raw.items ?? [],
+        items: rawItems.map((item: any) => ({
+          ...item,
+          product: {
+            name: item.productName ?? item.product?.name ?? "Product",
+            imageUrls: item.imageUrls ?? item.product?.imageUrls ?? [],
+          },
+        })),
         subtotal: Number(raw.subtotal ?? 0),
         deliveryFee: Number(raw.deliveryFee ?? 0),
         payableAmount: Number(raw.payableAmount ?? 0),
@@ -156,11 +164,22 @@ export const fetchOrders = createAsyncThunk<
       if (!response.ok) return rejectWithValue(data.message || 'Failed to fetch orders');
 
       const raw = data.data;
-      const orders: Order[] = Array.isArray(raw)
+      const orders: any[] = Array.isArray(raw)
         ? raw
         : raw?.data ?? raw?.items ?? [];
 
-      return orders;
+      return orders.map((order: any) => ({
+        ...order,
+        items: (order.orderItems ?? order.items ?? []).map((item: any) => ({
+          ...item,
+          product: item.product
+            ? {
+                name: item.product.name,
+                imageUrls: item.product.imageUrls ?? item.product.image_urls ?? [],
+              }
+            : undefined,
+        })),
+      })) as Order[];
     } catch (error: any) {
       return rejectWithValue(error.message || 'Network error occurred');
     }
@@ -244,6 +263,7 @@ const ordersSlice = createSlice({
       .addCase(fetchOrderById.fulfilled, (state, action) => {
         state.isLoadingDetail = false;
         state.orderDetail = action.payload;
+        state.orderDetailsMap[action.payload.id] = action.payload;
       })
       .addCase(fetchOrderById.rejected, (state, action) => {
         state.isLoadingDetail = false;

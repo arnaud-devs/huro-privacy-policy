@@ -14,7 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import ActiveOrderCard from "@/components/orders/ActiveOrderCard";
 import RecentlyDelivered from "@/components/orders/RecentlyDelivered";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchOrders, Order, OrderStatus } from "@/store/slices/ordersSlice";
+import { fetchOrderById, fetchOrders, Order, OrderStatus } from "@/store/slices/ordersSlice";
 
 type Tab = "Active" | "Delivered" | "Cancelled";
 const TABS: Tab[] = ["Active", "Delivered", "Cancelled"];
@@ -53,25 +53,36 @@ export default function OrdersScreen() {
   const [activeTab, setActiveTab] = useState<Tab>("Active");
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { orders, isFetching, error } = useAppSelector((state) => state.orders);
+  const { orders, isFetching, error, orderDetailsMap } = useAppSelector((state) => state.orders);
   const cartItemCount = useAppSelector((state) => state.cart.itemCount);
 
   useEffect(() => {
     dispatch(fetchOrders());
   }, [dispatch]);
 
+  // Batch-fetch order details to get product names + images
+  useEffect(() => {
+    orders.forEach((order) => {
+      if (!orderDetailsMap[order.id]) {
+        dispatch(fetchOrderById(order.id));
+      }
+    });
+  }, [orders, dispatch]);
+
   const activeOrders = orders.filter((o) => ACTIVE_STATUSES.includes(o.status));
   const deliveredOrders = orders.filter((o) => o.status === "DELIVERED");
   const cancelledOrders = orders.filter((o) => o.status === "CANCELLED" || o.status === "EXPIRED");
 
   function toActiveCard(order: Order) {
-    const firstItem = order.items?.[0];
+    const detail = orderDetailsMap[order.id];
+    const firstItem = detail?.items?.[0];
     const name = firstItem?.product?.name ?? "Order";
+    const itemCount = detail?.items?.length ?? 0;
     const image = firstItem?.product?.imageUrls?.[0] ?? "";
     return {
       id: order.id,
-      title: name + (order.items?.length > 1 ? ` +${order.items.length - 1} more` : ""),
-      store: order.deliveryZone?.name ?? "Campus Store",
+      title: name + (itemCount > 1 ? ` +${itemCount - 1} more` : ""),
+      store: order.deliveryZone?.name ?? detail?.snapshotZoneName ?? "Campus Store",
       orderId: `#${order.id.slice(0, 6).toUpperCase()}`,
       eta: order.batch?.slotLabel ?? "—",
       stage: statusLabel(order.status),
@@ -82,7 +93,8 @@ export default function OrdersScreen() {
   }
 
   function toRecentCard(order: Order) {
-    const firstItem = order.items?.[0];
+    const detail = orderDetailsMap[order.id];
+    const firstItem = detail?.items?.[0];
     return {
       id: order.id,
       title: firstItem?.product?.name ?? "Order",
