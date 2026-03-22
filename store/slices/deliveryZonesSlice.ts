@@ -65,7 +65,10 @@ const deliveryZonesSlice = createSlice({
       })
       .addCase(fetchDeliveryZones.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.zones = action.payload;
+        state.zones = (action.payload as any[]).map((z) => ({
+          ...z,
+          deliveryFee: Number(z.deliveryFee ?? 0),
+        }));
       })
       .addCase(fetchDeliveryZones.rejected, (state, action) => {
         state.isLoading = false;

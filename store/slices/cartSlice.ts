@@ -213,7 +213,7 @@ const cartSlice = createSlice({
         item.quantity = newQty;
         item.lineTotal = item.unitPrice * newQty;
       }
-      state.subtotal = state.items.reduce((sum, i) => sum + i.lineTotal, 0);
+      state.subtotal = state.items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
       state.itemCount = state.items.reduce((sum, i) => sum + i.quantity, 0);
     },
   },
@@ -225,9 +225,19 @@ const cartSlice = createSlice({
       })
       .addCase(fetchCart.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.items = action.payload.data.items;
-        state.subtotal = action.payload.data.subtotal;
-        state.itemCount = action.payload.data.itemCount;
+        const rawItems: any[] = action.payload.data.items ?? [];
+        state.items = rawItems.map((item) => ({
+          ...item,
+          unitPrice: Number(item.unitPrice ?? item.price ?? 0),
+          lineTotal: Number(item.lineTotal ?? 0),
+          quantity: Number(item.quantity ?? 0),
+          product: {
+            name: item.product?.name ?? item.name ?? "Product",
+            imageUrls: item.product?.imageUrls ?? (item.imageUrl ? [item.imageUrl] : []),
+          },
+        }));
+        state.subtotal = Number(action.payload.data.subtotal ?? 0);
+        state.itemCount = Number(action.payload.data.itemCount ?? 0);
       })
       .addCase(fetchCart.rejected, (state, action) => {
         state.isLoading = false;
@@ -236,7 +246,7 @@ const cartSlice = createSlice({
       .addCase(removeCartItem.pending, (state, action) => {
         const productId = action.meta.arg;
         state.items = state.items.filter((i) => i.productId !== productId);
-        state.subtotal = state.items.reduce((sum, i) => sum + (i.lineTotal ?? 0), 0);
+        state.subtotal = state.items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
         state.itemCount = state.items.reduce((sum, i) => sum + i.quantity, 0);
       })
       .addCase(removeCartItem.rejected, (state, action) => {

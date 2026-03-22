@@ -76,7 +76,8 @@ export default function CartScreen() {
     dispatch(fetchGates(zone.id));
   }
 
-  const total = (subtotal ?? 0) + DELIVERY_FEE;
+  const deliveryFee = selectedZone?.deliveryFee ?? DELIVERY_FEE;
+  const total = (subtotal ?? 0) + deliveryFee;
 
   function handleStepQty(productId: string, currentQty: number, delta: number) {
     const newQty = currentQty + delta;
@@ -424,7 +425,7 @@ export default function CartScreen() {
             </View>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Delivery Fee</Text>
-              <Text style={styles.summaryValue}>{fmt(DELIVERY_FEE)} RWF</Text>
+              <Text style={styles.summaryValue}>{fmt(deliveryFee)} RWF</Text>
             </View>
             <View style={styles.summaryDivider} />
             <View style={[styles.summaryRow, { marginBottom: 0 }]}>
