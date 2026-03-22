@@ -88,7 +88,9 @@ export default function OrderCheckoutScreen() {
     );
 
     if (placeOrder.fulfilled.match(result)) {
-      router.replace("/orders/order-status");
+      const p = result.payload as any;
+      const newOrderId = p?.data?.id ?? p?.data?.order?.id ?? p?.id ?? "";
+      router.replace({ pathname: "/orders/order-status", params: { orderId: newOrderId } });
     } else {
       const msg = (result.payload as string) ?? "";
       if (msg.toLowerCase().includes("profile")) {
@@ -110,7 +112,8 @@ export default function OrderCheckoutScreen() {
             deliveryNote: deliveryNote.trim() || undefined,
           }));
           if (placeOrder.fulfilled.match(retryResult)) {
-            router.replace("/orders/order-status");
+            const retryOrderId = (retryResult.payload as any)?.data?.id ?? (retryResult.payload as any)?.id ?? "";
+            router.replace({ pathname: "/orders/order-status", params: { orderId: retryOrderId } });
           } else {
             Alert.alert("Order Failed", (retryResult.payload as string) || "Please try again.");
           }
@@ -198,9 +201,9 @@ export default function OrderCheckoutScreen() {
           </View>
           {user?.phone || user?.fullName ? (
             <View style={styles.prefillHint}>
-              <Ionicons name="information-circle-outline" size={14} color="#1C74E9" />
+              <Ionicons name="information-circle-outline" size={15} color="#1C74E9" />
               <Text style={styles.prefillHintText}>
-                Pre-filled from your profile. Tap a field to change it if needed.
+                Pre-filled from your profile. Tap a field to change it if it don't match the one you are using paying.
               </Text>
             </View>
           ) : null}

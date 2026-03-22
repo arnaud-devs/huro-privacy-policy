@@ -33,8 +33,18 @@ export interface OrderDetail {
   snapshotZoneName: string;
   snapshotZoneType: string;
   customAddress?: string;
-  pickupSignature: string;
+  pickupSignature: string | null;
   createdAt: string;
+  paidAt?: string | null;
+  preparedAt?: string | null;
+  pickedUpAt?: string | null;
+  deliveredAt?: string | null;
+  cancelledAt?: string | null;
+  batch?: {
+    slotLabel: string;
+    scheduledAt: string;
+    riders?: { fullName: string; phone: string }[];
+  };
   items?: OrderItem[];
 }
 
