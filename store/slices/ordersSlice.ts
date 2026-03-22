@@ -309,9 +309,15 @@ const ordersSlice = createSlice({
       })
       .addCase(cancelOrder.fulfilled, (state, action) => {
         state.isCancelling = false;
+        const newStatus = (action.payload as any)?.status
+          ?? (action.payload as any)?.order?.status
+          ?? "CANCELLED";
         if (state.orderDetail) {
-          state.orderDetail.status = action.payload.status;
+          state.orderDetail.status = newStatus as OrderStatus;
         }
+        state.orders = state.orders.map((o) =>
+          o.id === state.orderDetail?.id ? { ...o, status: newStatus as OrderStatus } : o
+        );
       })
       .addCase(cancelOrder.rejected, (state, action) => {
         state.isCancelling = false;

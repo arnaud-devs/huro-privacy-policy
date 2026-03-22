@@ -135,7 +135,7 @@ export default function OrderStatusScreen() {
                 orderDetail.status === "CANCELLED" || orderDetail.status === "EXPIRED"
                   ? styles.badgeRed : styles.badgeBlue,
               ]}>
-                <Text style={styles.statusBadgeText}>{orderDetail.status.replace(/_/g, " ")}</Text>
+                <Text style={styles.statusBadgeText}>{(orderDetail.status ?? "").replace(/_/g, " ")}</Text>
               </View>
             </View>
             <Text style={styles.orderDate}>Placed on {fmtDate(orderDetail.createdAt)}</Text>
