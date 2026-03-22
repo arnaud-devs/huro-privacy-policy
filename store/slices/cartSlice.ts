@@ -248,9 +248,10 @@ const cartSlice = createSlice({
       .addCase(updateCartItem.rejected, (state, action) => {
         state.error = action.payload || 'Failed to update item';
       })
-      .addCase(addToCart.pending, (state) => {
+      .addCase(addToCart.pending, (state, action) => {
         state.isAdding = true;
         state.error = null;
+        state.itemCount += action.meta.arg.quantity;
       })
       .addCase(addToCart.fulfilled, (state) => {
         state.isAdding = false;
@@ -258,6 +259,7 @@ const cartSlice = createSlice({
       .addCase(addToCart.rejected, (state, action) => {
         state.isAdding = false;
         state.error = action.payload || 'Failed to add item';
+        state.itemCount -= action.meta.arg.quantity;
       })
       .addCase(clearCart.pending, (state) => {
         state.isClearing = true;

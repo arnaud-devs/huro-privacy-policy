@@ -13,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import ActiveOrderCard from "@/components/orders/ActiveOrderCard";
 import RecentlyDelivered from "@/components/orders/RecentlyDelivered";
+import CartIconButton from "@/components/common/CartIconButton";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchOrderById, fetchOrders, Order, OrderStatus } from "@/store/slices/ordersSlice";
 
@@ -54,7 +55,6 @@ export default function OrdersScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { orders, isFetching, error, orderDetailsMap } = useAppSelector((state) => state.orders);
-  const cartItemCount = useAppSelector((state) => state.cart.itemCount);
 
   useEffect(() => {
     dispatch(fetchOrders());
@@ -111,17 +111,7 @@ export default function OrdersScreen() {
       <View className="bg-white px-4 pt-2 pb-0 border-b border-slate-100">
         <View className="flex-row items-center justify-between mb-4">
           <Text className="text-xl font-bold text-slate-900">Orders</Text>
-          <TouchableOpacity
-            style={{ position: "relative" }}
-            onPress={() => router.push("/cart")}
-          >
-            <Ionicons name="cart-outline" size={24} color="#0F172A" />
-            {cartItemCount > 0 && (
-              <View style={styles.cartBadge}>
-                <Text style={styles.cartBadgeText}>{cartItemCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
+          <CartIconButton />
         </View>
 
         {/* Tabs */}
@@ -259,16 +249,4 @@ const styles = StyleSheet.create({
   activeTabBorder: { borderBottomWidth: 2, borderBottomColor: "#1C74E9" },
   activeTabText: { color: "#1C74E9" },
   inactiveTabText: { color: "#94a3b8" },
-  cartBadge: {
-    position: "absolute",
-    top: -6,
-    right: -6,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: "#1C74E9",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cartBadgeText: { fontSize: 9, color: "white", fontWeight: "700" },
 });

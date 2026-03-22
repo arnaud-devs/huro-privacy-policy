@@ -3,12 +3,12 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { Text, TouchableOpacity, View } from "react-native";
 
+import CartIconButton from "@/components/common/CartIconButton";
 import { useAppSelector } from "@/store/hooks";
 
 export default function HomeHeader() {
   const router = useRouter();
   const user = useAppSelector((state) => state.user.user);
-  const cartItemCount = useAppSelector((state) => state.cart.itemCount);
 
   const firstName = user?.fullName?.split(" ")[0] ?? "there";
 
@@ -41,19 +41,7 @@ export default function HomeHeader() {
       </TouchableOpacity>
 
       <View className="flex-row items-center gap-3">
-        <TouchableOpacity
-          onPress={() => router.push("/cart")}
-          className="w-10 h-10 rounded-full bg-white justify-center items-center border border-slate-200"
-        >
-          <Ionicons name="cart-outline" size={20} color="#0F172A" />
-          {cartItemCount > 0 && (
-            <View className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full items-center justify-center">
-              <Text style={{ fontSize: 9, color: "white", fontWeight: "700" }}>
-                {cartItemCount > 9 ? "9+" : cartItemCount}
-              </Text>
-            </View>
-          )}
-        </TouchableOpacity>
+        <CartIconButton />
 
         <TouchableOpacity className="w-10 h-10 rounded-full bg-white justify-center items-center border border-slate-200">
           <Ionicons name="notifications-outline" size={22} color="#0F172A" />
