@@ -93,7 +93,9 @@ export default function ProfileSetupScreen() {
               <Ionicons name="arrow-back" size={24} color="#0F172A" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Complete Profile</Text>
-            <View style={{ width: 34 }} />
+            <TouchableOpacity onPress={() => router.replace("/(tabs)")} style={styles.skipBtn}>
+              <Text style={styles.skipText}>Skip</Text>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.body}>
@@ -168,6 +170,12 @@ export default function ProfileSetupScreen() {
             ) : (
               <Text style={styles.btnText}>Complete Profile</Text>
             )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => router.replace("/(tabs)")}
+            style={styles.skipFooterBtn}
+          >
+            <Text style={styles.skipFooterText}>Skip for now</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -269,4 +277,10 @@ const styles = StyleSheet.create({
   },
   btnDisabled: { opacity: 0.6 },
   btnText: { color: "white", fontSize: 16, fontWeight: "700" },
+
+  skipBtn: { paddingHorizontal: 4, paddingVertical: 4 },
+  skipText: { fontSize: 14, fontWeight: "600", color: "#94a3b8" },
+
+  skipFooterBtn: { alignItems: "center", paddingVertical: 12 },
+  skipFooterText: { fontSize: 14, color: "#94a3b8", fontWeight: "500" },
 });
