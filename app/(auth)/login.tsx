@@ -36,11 +36,15 @@ export default function LoginScreen() {
 
     if (loginUser.fulfilled.match(resultAction)) {
       const user = resultAction.payload.data.user;
-
       if (user?.role?.toUpperCase() === "RIDER") {
         router.replace("/(rider)");
       } else {
         router.replace("/(tabs)");
+      }
+    } else {
+      const msg = (resultAction.payload as string) ?? "";
+      if (msg.toLowerCase().includes("not verified") || msg.toLowerCase().includes("verify")) {
+        router.push({ pathname: "/verify-email", params: { email } });
       }
     }
   };

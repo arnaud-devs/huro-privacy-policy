@@ -36,8 +36,11 @@ export default function SignUpScreen() {
     const resultAction = await dispatch(registerUser({ email, fullName, password }));
     
     if (registerUser.fulfilled.match(resultAction)) {
-      // Upon successful registration, redirect to the login screen
-      router.replace("/login");
+      const userId = resultAction.payload.data?.userId ?? "";
+      router.replace({
+        pathname: "/verify-email",
+        params: { userId, email },
+      });
     }
   };
 
