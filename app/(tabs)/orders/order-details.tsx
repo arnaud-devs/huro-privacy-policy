@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import QRCode from "react-native-qrcode-svg";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchOrderById, OrderStatus } from "@/store/slices/ordersSlice";
@@ -167,6 +168,34 @@ export default function OrderDetailsScreen() {
           </View>
         </View>
 
+        {/* QR Code — shown when order is out for delivery */}
+        {(orderDetail.status === "IN_DELIVERY" || orderDetail.status === "PICKED_UP") &&
+          orderDetail.pickupSignature && (
+            <View className="mx-4 mt-4 bg-white rounded-3xl p-5 border border-slate-100 items-center">
+              <View className="flex-row items-center mb-3">
+                <Ionicons name="qr-code-outline" size={18} color="#1C74E9" />
+                <Text className="text-base font-bold text-slate-900 ml-2">
+                  Delivery QR Code
+                </Text>
+              </View>
+              <Text className="text-xs text-slate-500 text-center mb-5 leading-5">
+                Show this QR code to your rider to confirm delivery.
+              </Text>
+              <View style={styles.qrWrapper}>
+                <QRCode
+                  value={orderDetail.pickupSignature}
+                  size={200}
+                  color="#0F172A"
+                  backgroundColor="white"
+                />
+              </View>
+              <View style={styles.codeRow}>
+                <Text style={styles.codeLabel}>Code</Text>
+                <Text style={styles.codeValue}>{orderDetail.pickupSignature}</Text>
+              </View>
+            </View>
+          )}
+
         {/* Tracking timeline */}
         {orderDetail.status !== "CANCELLED" && orderDetail.status !== "EXPIRED" && (
           <View className="mx-4 mt-4 bg-white rounded-3xl p-4 border border-slate-100">
@@ -248,4 +277,28 @@ const styles = StyleSheet.create({
   dotActive: { backgroundColor: "#1C74E9" },
   dotPending: { backgroundColor: "#e2e8f0" },
   connector: { width: 2, flex: 1, backgroundColor: "#1C74E9", marginTop: 2, marginBottom: 2, minHeight: 16 },
+  qrWrapper: {
+    padding: 16,
+    backgroundColor: "white",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  codeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#EFF6FF",
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    marginTop: 16,
+    gap: 8,
+  },
+  codeLabel: { fontSize: 12, color: "#64748B", fontWeight: "600" },
+  codeValue: { fontSize: 22, fontWeight: "800", color: "#1C74E9", letterSpacing: 4 },
 });

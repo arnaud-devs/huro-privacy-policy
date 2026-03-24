@@ -16,6 +16,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   fetchRiderBatches,
   loadSampleBatches,
+  setDeliveryPhase,
   type RiderBatch,
 } from "@/store/slices/riderSlice";
 
@@ -35,7 +36,7 @@ function minsUntil(iso: string): string {
 export default function RiderHomeScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { batches, isFetchingBatches, deliveryPhase, claimedOrderIds, currentBatchId, deliveredOrderIds } =
+  const { batches, isFetchingBatches, deliveryPhase, claimedOrderIds, currentBatchId, deliveredOrderIds, pickedUpOrderIds } =
     useAppSelector((state) => state.rider);
   const user = useAppSelector((state) => state.user.user);
 
@@ -64,9 +65,40 @@ export default function RiderHomeScreen() {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning," : hour < 17 ? "Good afternoon," : "Good evening,";
 
+  // All claimed orders already picked up from a previous session
+  const allAlreadyPickedUp =
+    claimedOrderIds.length > 0 &&
+    claimedOrderIds.every((id) => pickedUpOrderIds.includes(id));
+
   // Phase-aware CTA
   const renderPhaseCard = () => {
     if (deliveryPhase === "picking_up" && currentBatchId) {
+      // All orders were picked up in a previous session — skip pickup screen
+      if (allAlreadyPickedUp) {
+        return (
+          <View style={[styles.phaseCard, { borderColor: "#1C74E9" }]}>
+            <View style={styles.phaseIconWrap}>
+              <Ionicons name="bicycle" size={28} color="#1C74E9" />
+            </View>
+            <Text style={styles.phaseTitle}>Ready to Deliver</Text>
+            <Text style={styles.phaseSubtitle}>
+              All {claimedOrderIds.length} order(s) already picked up
+            </Text>
+            <TouchableOpacity
+              style={[styles.phaseCta, { backgroundColor: "#1C74E9" }]}
+              activeOpacity={0.85}
+              onPress={() => {
+                dispatch(setDeliveryPhase("delivering"));
+                router.push("/(rider)/active-delivery");
+              }}
+            >
+              <Ionicons name="navigate" size={18} color="white" style={{ marginRight: 6 }} />
+              <Text style={styles.phaseCtaText}>Continue Delivery</Text>
+            </TouchableOpacity>
+          </View>
+        );
+      }
+
       return (
         <View style={[styles.phaseCard, { borderColor: "#F59E0B" }]}>
           <View style={styles.phaseIconWrap}>

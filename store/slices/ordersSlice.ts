@@ -11,6 +11,7 @@ export type OrderStatus =
   | 'IN_DELIVERY'
   | 'DELIVERED'
   | 'CANCELLED'
+  | 'RIDER_ASSIGNED'
   | 'EXPIRED';
 
 export interface OrderItem {

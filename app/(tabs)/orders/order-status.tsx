@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import QRCode from "react-native-qrcode-svg";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import OrderTimeline, { TimelineStep } from "@/components/orders/OrderTimeline";
@@ -219,16 +220,45 @@ export default function OrderStatusScreen() {
             <OrderTimeline steps={buildSteps(orderDetail.status, orderDetail)} />
           </View>
 
-          {/* ── PICKUP CODE ── */}
+          {/* ── PICKUP CODE / QR ── */}
           {orderDetail.pickupSignature && (
             <View style={styles.card}>
-              <Text style={styles.sectionLabel}>PICKUP CODE</Text>
-              <Text style={styles.pickupHint}>
-                Show this code at the <Text style={{ fontWeight: "700" }}>{orderDetail.snapshotZoneName}</Text> pickup station.
+              <Text style={styles.sectionLabel}>
+                {orderDetail.status === "IN_DELIVERY" || orderDetail.status === "PICKED_UP"
+                  ? "DELIVERY QR CODE"
+                  : "PICKUP CODE"}
               </Text>
-              <View style={styles.codeBox}>
-                <Text style={styles.codeText}>{orderDetail.pickupSignature}</Text>
-              </View>
+
+              {orderDetail.status === "IN_DELIVERY" || orderDetail.status === "PICKED_UP" ? (
+                <>
+                  <Text style={styles.pickupHint}>
+                    Show this QR code to your rider to confirm delivery. They will scan it to mark your order as delivered.
+                  </Text>
+                  <View style={styles.qrContainer}>
+                    <View style={styles.qrBox}>
+                      <QRCode
+                        value={orderDetail.pickupSignature}
+                        size={200}
+                        color="#0F172A"
+                        backgroundColor="white"
+                      />
+                    </View>
+                    <View style={styles.codeChip}>
+                      <Text style={styles.codeChipLabel}>Code</Text>
+                      <Text style={styles.codeChipValue}>{orderDetail.pickupSignature}</Text>
+                    </View>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.pickupHint}>
+                    Show this code at the <Text style={{ fontWeight: "700" }}>{orderDetail.snapshotZoneName}</Text> pickup station.
+                  </Text>
+                  <View style={styles.codeBox}>
+                    <Text style={styles.codeText}>{orderDetail.pickupSignature}</Text>
+                  </View>
+                </>
+              )}
             </View>
           )}
 
@@ -338,6 +368,32 @@ const styles = StyleSheet.create({
     backgroundColor: "#eff6ff",
   },
   codeText: { fontSize: 40, fontWeight: "800", color: "#0f172a", letterSpacing: 8 },
+
+  // QR code
+  qrContainer: { alignItems: "center", gap: 16 },
+  qrBox: {
+    padding: 16,
+    backgroundColor: "white",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  codeChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#eff6ff",
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  codeChipLabel: { fontSize: 12, color: "#64748b", fontWeight: "600" },
+  codeChipValue: { fontSize: 24, fontWeight: "800", color: "#1C74E9", letterSpacing: 4 },
 
   // Cancel
   cancelBtn: {

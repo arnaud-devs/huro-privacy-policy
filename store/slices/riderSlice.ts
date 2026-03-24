@@ -122,6 +122,7 @@ interface RiderState {
   claimedOrderIds: string[];
   currentBatchId: string | null;
   deliveredOrderIds: string[];
+  pickedUpOrderIds: string[];
   isDispatching: boolean;
 }
 
@@ -150,6 +151,7 @@ const initialState: RiderState = {
   claimedOrderIds: [],
   currentBatchId: null,
   deliveredOrderIds: [],
+  pickedUpOrderIds: [],
   isDispatching: false,
 };
 
@@ -680,6 +682,7 @@ const riderSlice = createSlice({
       state.claimedOrderIds = [];
       state.currentBatchId = null;
       state.deliveredOrderIds = [];
+      state.pickedUpOrderIds = [];
     },
     // Load sample data for development
     loadSampleBatches: (state) => {
@@ -781,6 +784,13 @@ const riderSlice = createSlice({
       .addCase(uploadIdDocument.rejected, (state, action) => {
         state.isUploadingId = false;
         state.uploadError = action.payload || 'Failed to upload ID document';
+      })
+      // pickupOrder — track which orders have been successfully picked up
+      .addCase(pickupOrder.fulfilled, (state, action) => {
+        const orderId = action.meta.arg;
+        if (!state.pickedUpOrderIds.includes(orderId)) {
+          state.pickedUpOrderIds.push(orderId);
+        }
       })
       // claimBatchOrder
       .addCase(claimBatchOrder.fulfilled, (state, action) => {

@@ -21,7 +21,7 @@ type Tab = "Active" | "Delivered" | "Cancelled";
 const TABS: Tab[] = ["Active", "Delivered", "Cancelled"];
 
 const ACTIVE_STATUSES: OrderStatus[] = [
-  "PENDING_PAYMENT", "PAID", "PREPARING", "READY_FOR_PICKUP", "PICKED_UP", "IN_DELIVERY",
+  "PENDING_PAYMENT", "PAID", "PREPARING", "READY_FOR_PICKUP", "PICKED_UP", "IN_DELIVERY","RIDER_ASSIGNED"
 ];
 
 function statusLabel(status: OrderStatus): string {

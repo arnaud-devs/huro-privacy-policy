@@ -42,7 +42,8 @@ export default function ActiveDeliveryScreen() {
           zone: detail?.snapshotZoneName ?? "—",
           phone: detail?.snapshotPhone ?? "—",
           amount: detail?.payableAmount ?? 0,
-          itemCount: detail?.orderItems?.length ?? 0,
+          items: detail?.orderItems ?? [],
+          pickupSignature: detail?.pickupSignature ?? null,
         };
       });
   }, [claimedOrderIds, deliveredOrderIds]);
@@ -208,7 +209,7 @@ export default function ActiveDeliveryScreen() {
                       #{order.id.slice(0, 8).toUpperCase()}
                     </Text>
                   </View>
-                  <Text style={styles.itemBadge}>{order.itemCount} items</Text>
+                  <Text style={styles.itemBadge}>{order.items.length} items</Text>
                 </View>
 
                 <View style={styles.orderDetails}>
@@ -220,6 +221,39 @@ export default function ActiveDeliveryScreen() {
                     <Ionicons name="call-outline" size={15} color="#64748B" />
                     <Text style={styles.detailText}>{order.phone}</Text>
                   </View>
+
+                  {/* Items list */}
+                  {order.items.length > 0 && (
+                    <View style={styles.itemsList}>
+                      {order.items.map((item, i) => (
+                        <View key={i} style={styles.itemLine}>
+                          <View style={styles.itemDot} />
+                          <Text style={styles.itemLineName} numberOfLines={1}>
+                            {item.productName}
+                          </Text>
+                          <Text style={styles.itemLineQty}>×{item.quantity}</Text>
+                          <Text style={styles.itemLinePrice}>
+                            RWF {(item.unitPrice ?? 0).toLocaleString()}
+                          </Text>
+                        </View>
+                      ))}
+                      <View style={styles.amountRow}>
+                        <Text style={styles.amountLabel}>Total</Text>
+                        <Text style={styles.amountValue}>
+                          RWF {order.amount.toLocaleString()}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Pickup signature code */}
+                  {order.pickupSignature && (
+                    <View style={styles.signatureRow}>
+                      <Ionicons name="key-outline" size={15} color="#1C74E9" />
+                      <Text style={styles.signatureLabel}>Pickup Code:</Text>
+                      <Text style={styles.signatureCode}>{order.pickupSignature}</Text>
+                    </View>
+                  )}
                 </View>
 
                 <View style={styles.orderActions}>
@@ -535,6 +569,74 @@ const styles = StyleSheet.create({
   },
   verifyBtnDisabled: { backgroundColor: "#E2E8F0" },
   verifyBtnText: { fontSize: 13, fontWeight: "700", color: "white" },
+
+  // Items list inside order card
+  itemsList: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 8,
+    gap: 6,
+  },
+  itemLine: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  itemDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#1C74E9",
+  },
+  itemLineName: {
+    flex: 1,
+    fontSize: 13,
+    color: "#334155",
+    fontWeight: "500",
+  },
+  itemLineQty: {
+    fontSize: 12,
+    color: "#64748B",
+    fontWeight: "600",
+    minWidth: 24,
+    textAlign: "right",
+  },
+  itemLinePrice: {
+    fontSize: 12,
+    color: "#64748B",
+    minWidth: 80,
+    textAlign: "right",
+  },
+  amountRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    borderTopWidth: 1,
+    borderTopColor: "#E2E8F0",
+    paddingTop: 8,
+    marginTop: 4,
+  },
+  amountLabel: { fontSize: 13, fontWeight: "700", color: "#0F172A" },
+  amountValue: { fontSize: 13, fontWeight: "800", color: "#1C74E9" },
+
+  // Pickup signature
+  signatureRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#EFF6FF",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginTop: 8,
+    gap: 6,
+  },
+  signatureLabel: { fontSize: 12, color: "#64748B", fontWeight: "600" },
+  signatureCode: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#1C74E9",
+    letterSpacing: 2,
+  },
 
   // Delivered
   deliveredCard: {

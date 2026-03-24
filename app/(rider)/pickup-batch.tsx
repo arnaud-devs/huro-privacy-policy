@@ -41,7 +41,7 @@ export default function PickupBatchScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { batchId } = useLocalSearchParams<{ batchId: string }>();
-  const { batchDetail, isLoadingBatchDetail, claimedOrderIds } = useAppSelector(
+  const { batchDetail, isLoadingBatchDetail, claimedOrderIds, pickedUpOrderIds } = useAppSelector(
     (state) => state.rider
   );
 
@@ -117,6 +117,8 @@ export default function PickupBatchScreen() {
     const failed: string[] = [];
 
     for (const order of pickupOrders) {
+      // Skip orders already successfully picked up in a previous session
+      if (pickedUpOrderIds.includes(order.orderId)) continue;
       const result = await dispatch(pickupOrder(order.orderId));
       if (!pickupOrder.fulfilled.match(result)) {
         failed.push(order.orderId);
