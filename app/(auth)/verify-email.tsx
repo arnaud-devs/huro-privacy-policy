@@ -94,7 +94,7 @@ export default function VerifyEmailScreen() {
     const result = await dispatch(verifyEmail({ userId, otp }));
     if (verifyEmail.fulfilled.match(result)) {
       const role = result.payload.data.user?.role?.toUpperCase();
-      router.replace(role === "RIDER" ? "/(rider)" : "/profile-setup");
+      router.replace((role === "RIDER" ? "/(rider)/(rider-tabs)" : "/profile-setup") as any);
     }
   }
 

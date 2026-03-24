@@ -12,8 +12,6 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { GoogleSignin, isErrorWithCode, statusCodes } from "@react-native-google-signin/google-signin";
-
 import AuthButton from "@/components/auth/AuthButton";
 import AuthInput from "@/components/auth/AuthInput";
 import AuthLogo from "@/components/auth/AuthLogo";
@@ -24,7 +22,17 @@ import { clearError, loginUser, googleLogin } from "@/store/slices/userSlice";
 // Replace with your Google Web Client ID from Google Cloud Console
 const WEB_CLIENT_ID = "631103835596-rctq5tgc50q68hebq1i293gohbtp2o45.apps.googleusercontent.com";
 
-GoogleSignin.configure({ webClientId: WEB_CLIENT_ID });
+// Lazy-load Google Sign-In so it doesn't crash in Expo Go
+let GoogleSignin: any = null;
+let statusCodes: any = {};
+try {
+  const gsi = require("@react-native-google-signin/google-signin");
+  GoogleSignin = gsi.GoogleSignin;
+  statusCodes = gsi.statusCodes;
+  GoogleSignin.configure({ webClientId: WEB_CLIENT_ID });
+} catch {
+  // Native module not available (e.g. Expo Go)
+}
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -41,7 +49,7 @@ export default function LoginScreen() {
 
   function navigateAfterLogin(role: string, profileComplete: boolean, isNewUser?: boolean) {
     if (role?.toUpperCase() === "RIDER") {
-      router.replace("/(rider)");
+      router.replace("/(rider)/(rider-tabs)" as any);
     } else if (isNewUser || !profileComplete) {
       router.replace("/profile-setup");
     } else {
@@ -56,6 +64,7 @@ export default function LoginScreen() {
 
     if (loginUser.fulfilled.match(resultAction)) {
       const user = resultAction.payload.data.user;
+      console.log('[login] user role:', user?.role, 'profileComplete:', user?.profileComplete);
       navigateAfterLogin(user?.role, user?.profileComplete);
     } else {
       const msg = (resultAction.payload as string) ?? "";
@@ -66,6 +75,10 @@ export default function LoginScreen() {
   };
 
   const handleGoogleSignIn = async () => {
+    if (!GoogleSignin) {
+      Alert.alert("Not Available", "Google Sign-In requires a dev build. It is not supported in Expo Go.");
+      return;
+    }
     try {
       setIsGoogleLoading(true);
       await GoogleSignin.hasPlayServices();

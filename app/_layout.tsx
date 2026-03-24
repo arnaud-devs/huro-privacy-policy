@@ -14,10 +14,10 @@ import { store } from "../store/store";
 export default function RootLayout() {
   return (
     <Provider store={store}>
-      <Stack>
+      <Stack initialRouteName="(auth)">
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="(rider)" options={{ headerShown: false }} />
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="cart" options={{ headerShown: false }} />
         <Stack.Screen name="product-details" options={{ headerShown: false }} />
         <Stack.Screen

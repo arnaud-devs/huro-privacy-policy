@@ -95,6 +95,8 @@ export interface VerificationResult {
   };
 }
 
+export type DeliveryPhase = 'idle' | 'picking_up' | 'delivering' | 'arrived';
+
 interface RiderState {
   profile: RiderProfile | null;
   batches: RiderBatch[];
@@ -115,6 +117,11 @@ interface RiderState {
   verifyError: string | null;
   isUploadingId: boolean;
   uploadError: string | null;
+  // New rider flow state
+  deliveryPhase: DeliveryPhase;
+  claimedOrderIds: string[];
+  currentBatchId: string | null;
+  deliveredOrderIds: string[];
 }
 
 const initialState: RiderState = {
@@ -137,6 +144,178 @@ const initialState: RiderState = {
   verifyError: null,
   isUploadingId: false,
   uploadError: null,
+  // New rider flow state
+  deliveryPhase: 'idle',
+  claimedOrderIds: [],
+  currentBatchId: null,
+  deliveredOrderIds: [],
+};
+
+// ─── Sample data for development (remove when APIs are ready) ───
+export const SAMPLE_BATCHES: RiderBatch[] = [
+  {
+    id: 'batch-001',
+    slotLabel: 'Morning Slot',
+    scheduledAt: new Date(Date.now() + 45 * 60000).toISOString(),
+    status: 'IN_PROGRESS',
+    currentOrders: 6,
+    maxOrders: 8,
+    deliveryZone: { name: 'Engineering Campus' },
+  },
+  {
+    id: 'batch-002',
+    slotLabel: 'Afternoon Slot',
+    scheduledAt: new Date(Date.now() + 3 * 3600000).toISOString(),
+    status: 'CLOSED',
+    currentOrders: 4,
+    maxOrders: 6,
+    deliveryZone: { name: 'Admin Block' },
+  },
+];
+
+export const SAMPLE_BATCH_DETAIL: BatchDetail = {
+  id: 'batch-001',
+  slotLabel: 'Morning Slot',
+  scheduledAt: new Date(Date.now() + 45 * 60000).toISOString(),
+  status: 'IN_PROGRESS',
+  currentOrders: 6,
+  maxOrders: 8,
+  deliveryZone: { name: 'Engineering Campus' },
+  riders: [
+    { id: 'rider-1', fullName: 'You' },
+    { id: 'rider-2', fullName: 'Amina K.' },
+  ],
+  orders: [
+    {
+      id: 'order-101',
+      status: 'CONFIRMED',
+      pickupSignature: null,
+      orderItems: [
+        { id: 'item-1', productName: 'Chicken Shawarma', quantity: 2, unitPrice: 3500 },
+        { id: 'item-2', productName: 'Fanta Orange', quantity: 1, unitPrice: 500 },
+      ],
+    },
+    {
+      id: 'order-102',
+      status: 'CONFIRMED',
+      pickupSignature: null,
+      orderItems: [
+        { id: 'item-3', productName: 'Beef Burger Combo', quantity: 1, unitPrice: 4500 },
+        { id: 'item-4', productName: 'Mineral Water', quantity: 2, unitPrice: 300 },
+      ],
+    },
+    {
+      id: 'order-103',
+      status: 'CONFIRMED',
+      pickupSignature: null,
+      orderItems: [
+        { id: 'item-5', productName: 'Veggie Wrap', quantity: 1, unitPrice: 2800 },
+      ],
+    },
+    {
+      id: 'order-104',
+      status: 'CONFIRMED',
+      pickupSignature: 'rider-2',
+      orderItems: [
+        { id: 'item-6', productName: 'Pizza Margherita', quantity: 1, unitPrice: 5000 },
+        { id: 'item-7', productName: 'Coca Cola', quantity: 2, unitPrice: 500 },
+      ],
+    },
+    {
+      id: 'order-105',
+      status: 'CONFIRMED',
+      pickupSignature: 'rider-2',
+      orderItems: [
+        { id: 'item-8', productName: 'Jollof Rice', quantity: 1, unitPrice: 3000 },
+        { id: 'item-9', productName: 'Grilled Chicken', quantity: 1, unitPrice: 2500 },
+      ],
+    },
+    {
+      id: 'order-106',
+      status: 'CONFIRMED',
+      pickupSignature: null,
+      orderItems: [
+        { id: 'item-10', productName: 'Suya Plate', quantity: 1, unitPrice: 4000 },
+      ],
+    },
+  ],
+};
+
+export const SAMPLE_ORDER_DETAILS: Record<string, RiderOrderDetail> = {
+  'order-101': {
+    id: 'order-101',
+    status: 'CONFIRMED',
+    paymentStatus: 'PAID',
+    payableAmount: 7500,
+    subtotal: 7000,
+    deliveryFee: 500,
+    snapshotName: 'Ibrahim Musa',
+    snapshotPhone: '+234 801 234 5678',
+    snapshotZoneName: 'Engineering Campus',
+    snapshotZoneType: 'CAMPUS',
+    customAddress: 'Block B, Room 204',
+    pickupSignature: null,
+    createdAt: new Date(Date.now() - 30 * 60000).toISOString(),
+    orderItems: [
+      { id: 'item-1', productName: 'Chicken Shawarma', quantity: 2, unitPrice: 3500, lineTotal: 7000 },
+      { id: 'item-2', productName: 'Fanta Orange', quantity: 1, unitPrice: 500, lineTotal: 500 },
+    ],
+  },
+  'order-102': {
+    id: 'order-102',
+    status: 'CONFIRMED',
+    paymentStatus: 'PAID',
+    payableAmount: 5100,
+    subtotal: 4600,
+    deliveryFee: 500,
+    snapshotName: 'Fatima Ahmed',
+    snapshotPhone: '+234 802 345 6789',
+    snapshotZoneName: 'Engineering Campus',
+    snapshotZoneType: 'CAMPUS',
+    customAddress: 'Lab 3, Ground Floor',
+    pickupSignature: null,
+    createdAt: new Date(Date.now() - 25 * 60000).toISOString(),
+    orderItems: [
+      { id: 'item-3', productName: 'Beef Burger Combo', quantity: 1, unitPrice: 4500, lineTotal: 4500 },
+      { id: 'item-4', productName: 'Mineral Water', quantity: 2, unitPrice: 300, lineTotal: 600 },
+    ],
+  },
+  'order-103': {
+    id: 'order-103',
+    status: 'CONFIRMED',
+    paymentStatus: 'PAID',
+    payableAmount: 3300,
+    subtotal: 2800,
+    deliveryFee: 500,
+    snapshotName: 'John Okafor',
+    snapshotPhone: '+234 803 456 7890',
+    snapshotZoneName: 'Engineering Campus',
+    snapshotZoneType: 'CAMPUS',
+    customAddress: null,
+    pickupSignature: null,
+    createdAt: new Date(Date.now() - 20 * 60000).toISOString(),
+    orderItems: [
+      { id: 'item-5', productName: 'Veggie Wrap', quantity: 1, unitPrice: 2800, lineTotal: 2800 },
+    ],
+  },
+  'order-106': {
+    id: 'order-106',
+    status: 'CONFIRMED',
+    paymentStatus: 'PAID',
+    payableAmount: 4500,
+    subtotal: 4000,
+    deliveryFee: 500,
+    snapshotName: 'Grace Adebayo',
+    snapshotPhone: '+234 804 567 8901',
+    snapshotZoneName: 'Engineering Campus',
+    snapshotZoneType: 'CAMPUS',
+    customAddress: 'Hostel C, Room 112',
+    pickupSignature: null,
+    createdAt: new Date(Date.now() - 15 * 60000).toISOString(),
+    orderItems: [
+      { id: 'item-10', productName: 'Suya Plate', quantity: 1, unitPrice: 4000, lineTotal: 4000 },
+    ],
+  },
 };
 
 export const fetchRiderOrders = createAsyncThunk<
@@ -363,6 +542,40 @@ const riderSlice = createSlice({
   initialState,
   reducers: {
     clearUploadError: (state) => { state.uploadError = null; },
+    claimOrders: (state, action: { payload: string[] }) => {
+      const newIds = action.payload.filter(id => !state.claimedOrderIds.includes(id));
+      state.claimedOrderIds = [...state.claimedOrderIds, ...newIds];
+    },
+    unclaimOrder: (state, action: { payload: string }) => {
+      state.claimedOrderIds = state.claimedOrderIds.filter(id => id !== action.payload);
+    },
+    setCurrentBatch: (state, action: { payload: string }) => {
+      state.currentBatchId = action.payload;
+    },
+    setDeliveryPhase: (state, action: { payload: DeliveryPhase }) => {
+      state.deliveryPhase = action.payload;
+    },
+    markOrderDeliveredLocal: (state, action: { payload: string }) => {
+      state.deliveredOrderIds = [...state.deliveredOrderIds, action.payload];
+      state.claimedOrderIds = state.claimedOrderIds.filter(id => id !== action.payload);
+    },
+    resetDeliverySession: (state) => {
+      state.deliveryPhase = 'idle';
+      state.claimedOrderIds = [];
+      state.currentBatchId = null;
+      state.deliveredOrderIds = [];
+    },
+    // Load sample data for development
+    loadSampleBatches: (state) => {
+      state.batches = SAMPLE_BATCHES;
+      state.isFetchingBatches = false;
+    },
+    loadSampleBatchDetail: (state, action: { payload: string }) => {
+      if (action.payload === SAMPLE_BATCH_DETAIL.id) {
+        state.batchDetail = SAMPLE_BATCH_DETAIL;
+      }
+      state.isLoadingBatchDetail = false;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -456,5 +669,15 @@ const riderSlice = createSlice({
   },
 });
 
-export const { clearUploadError } = riderSlice.actions;
+export const {
+  clearUploadError,
+  claimOrders,
+  unclaimOrder,
+  setCurrentBatch,
+  setDeliveryPhase,
+  markOrderDeliveredLocal,
+  resetDeliverySession,
+  loadSampleBatches,
+  loadSampleBatchDetail,
+} = riderSlice.actions;
 export default riderSlice.reducer;
