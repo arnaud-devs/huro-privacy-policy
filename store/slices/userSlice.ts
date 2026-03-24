@@ -1,4 +1,5 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { API_BASE_URL } from '@/store/config';
 
 export interface User {
   id: string;
@@ -63,6 +64,17 @@ export interface AuthResponse {
   message: string;
 }
 
+// Google auth also returns isNewUser
+export interface GoogleAuthResponse {
+  success: boolean;
+  data: {
+    user: User;
+    tokens: Tokens;
+    isNewUser: boolean;
+  };
+  message: string;
+}
+
 interface UserState {
   user: User | null;
   tokens: Tokens | null;
@@ -87,7 +99,6 @@ const initialState: UserState = {
   verifyEmailError: null,
 };
 
-const API_BASE_URL = 'https://huzago-backend.onrender.com/api/v1';
 
 export const registerUser = createAsyncThunk<
   RegisterResponse,
@@ -171,6 +182,28 @@ export const loginUser = createAsyncThunk<
       const data = await response.json();
       if (!response.ok) return rejectWithValue(data.message || 'Login failed');
       return data as AuthResponse;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Network error occurred');
+    }
+  }
+);
+
+export const googleLogin = createAsyncThunk<
+  GoogleAuthResponse,
+  { idToken: string },
+  { rejectValue: string }
+>(
+  'user/googleLogin',
+  async ({ idToken }, { rejectWithValue }) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/google`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken }),
+      });
+      const data = await response.json();
+      if (!response.ok) return rejectWithValue(data.message || data.error?.message || 'Google sign-in failed');
+      return data as GoogleAuthResponse;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Network error occurred');
     }
@@ -378,6 +411,22 @@ const userSlice = createSlice({
       .addCase(loginUser.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload || 'Failed to login';
+      })
+
+      // googleLogin
+      .addCase(googleLogin.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(googleLogin.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload.data.user;
+        state.tokens = action.payload.data.tokens;
+        state.isAuthenticated = true;
+      })
+      .addCase(googleLogin.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload || 'Google sign-in failed';
       })
 
       // logoutUser
