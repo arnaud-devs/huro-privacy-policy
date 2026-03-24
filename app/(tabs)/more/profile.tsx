@@ -56,7 +56,7 @@ const SECTIONS: Section[] = [
         icon: "person-outline",
         label: "Edit Profile",
         color: "#1C74E9",
-        route: null,
+        route: "/(tabs)/more/edit-profile",
       },
       {
         icon: "notifications-outline",

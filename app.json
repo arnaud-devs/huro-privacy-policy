@@ -1,22 +1,22 @@
 {
   "expo": {
-    "name": "HuzaGo",
-    "slug": "HuzaGo",
+    "name": "HURO",
+    "slug": "Huro",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "huzago",
+    "icon": "./assets/images/HURO_ICON.png",
+    "scheme": "huro",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.huro.app"
     },
     "android": {
+      "package": "com.huro.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "foregroundImage": "./assets/images/HURO_ICON.png",
+        "backgroundColor": "#1C74E9"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
@@ -44,7 +44,10 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      ["@react-native-google-signin/google-signin", {
+        "iosUrlScheme": "com.googleusercontent.apps.631103835596-vjmmeusmr808s60pajd7d0f5oeh32roi"
+      }]
     ],
     "experiments": {
       "typedRoutes": true,

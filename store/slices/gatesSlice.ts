@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 
-const API_BASE_URL = 'https://huzago-backend.onrender.com/api/v1';
+import { API_BASE_URL } from '@/store/config';
 
 export interface Gate {
   id: string;
