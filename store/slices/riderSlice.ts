@@ -122,6 +122,7 @@ interface RiderState {
   claimedOrderIds: string[];
   currentBatchId: string | null;
   deliveredOrderIds: string[];
+  isDispatching: boolean;
 }
 
 const initialState: RiderState = {
@@ -149,6 +150,7 @@ const initialState: RiderState = {
   claimedOrderIds: [],
   currentBatchId: null,
   deliveredOrderIds: [],
+  isDispatching: false,
 };
 
 // ─── Sample data for development (remove when APIs are ready) ───
@@ -317,6 +319,120 @@ export const SAMPLE_ORDER_DETAILS: Record<string, RiderOrderDetail> = {
     ],
   },
 };
+
+export interface PickupOrderResponse {
+  success: boolean;
+  data: {
+    id: string;
+    status: string;
+  };
+  message: string;
+}
+
+export const pickupOrder = createAsyncThunk<
+  PickupOrderResponse,
+  string,
+  { state: { user: { tokens: { accessToken: string } | null } }; rejectValue: string }
+>(
+  'rider/pickupOrder',
+  async (orderId, { getState, rejectWithValue }) => {
+    try {
+      const accessToken = getState().user.tokens?.accessToken;
+      if (!accessToken) return rejectWithValue('Not authenticated');
+
+      const response = await fetch(`${API_BASE_URL}/orders/rider/${orderId}/pickup`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      const data = await response.json();
+      if (!response.ok) return rejectWithValue(data.message || data.error?.message || 'Failed to mark as picked up');
+      return data as PickupOrderResponse;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Network error occurred');
+    }
+  }
+);
+
+export interface ClaimOrderResponse {
+  success: boolean;
+  data: {
+    id: string;
+    status: string;
+    riderId: string;
+  };
+  message: string;
+}
+
+export const claimBatchOrder = createAsyncThunk<
+  ClaimOrderResponse,
+  { batchId: string; orderId: string },
+  { state: { user: { tokens: { accessToken: string } | null } }; rejectValue: string }
+>(
+  'rider/claimBatchOrder',
+  async ({ batchId, orderId }, { getState, rejectWithValue }) => {
+    try {
+      const accessToken = getState().user.tokens?.accessToken;
+      if (!accessToken) return rejectWithValue('Not authenticated');
+
+      const response = await fetch(`${API_BASE_URL}/batches/${batchId}/claim`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ orderId }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) return rejectWithValue(data.message || data.error?.message || 'Failed to claim order');
+      return data as ClaimOrderResponse;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Network error occurred');
+    }
+  }
+);
+
+export interface DispatchBatchResponse {
+  success: boolean;
+  data: {
+    batchId: string;
+    status: string;
+    ordersDispatched: number;
+  };
+  message: string;
+}
+
+export const dispatchBatch = createAsyncThunk<
+  DispatchBatchResponse,
+  string,
+  { state: { user: { tokens: { accessToken: string } | null } }; rejectValue: string }
+>(
+  'rider/dispatchBatch',
+  async (batchId, { getState, rejectWithValue }) => {
+    try {
+      const accessToken = getState().user.tokens?.accessToken;
+      if (!accessToken) return rejectWithValue('Not authenticated');
+
+      const response = await fetch(`${API_BASE_URL}/batches/${batchId}/dispatch`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      const data = await response.json();
+      if (!response.ok) return rejectWithValue(data.message || data.error?.message || 'Failed to dispatch batch');
+      return data as DispatchBatchResponse;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Network error occurred');
+    }
+  }
+);
 
 export const fetchRiderOrders = createAsyncThunk<
   RiderOrder[],
@@ -665,6 +781,23 @@ const riderSlice = createSlice({
       .addCase(uploadIdDocument.rejected, (state, action) => {
         state.isUploadingId = false;
         state.uploadError = action.payload || 'Failed to upload ID document';
+      })
+      // claimBatchOrder
+      .addCase(claimBatchOrder.fulfilled, (state, action) => {
+        const orderId = action.meta.arg.orderId;
+        if (!state.claimedOrderIds.includes(orderId)) {
+          state.claimedOrderIds.push(orderId);
+        }
+      })
+      // dispatchBatch
+      .addCase(dispatchBatch.pending, (state) => {
+        state.isDispatching = true;
+      })
+      .addCase(dispatchBatch.fulfilled, (state) => {
+        state.isDispatching = false;
+      })
+      .addCase(dispatchBatch.rejected, (state) => {
+        state.isDispatching = false;
       });
   },
 });

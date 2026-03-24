@@ -15,7 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { verifyPickupSignature } from "@/store/slices/riderSlice";
 
-const CODE_LENGTH = 5;
+const CODE_LENGTH = 6;
 
 export default function ManualCodeEntryScreen() {
   const router = useRouter();
@@ -88,7 +88,7 @@ export default function ManualCodeEntryScreen() {
 
           <Text style={styles.title}>Pickup Verification</Text>
           <Text style={styles.subtitle}>
-            Ask the customer for their 5-character pickup code to complete the delivery.
+            Ask the customer for their 6-character pickup code to complete the delivery.
           </Text>
 
           {/* Hidden TextInput captures keyboard input */}
@@ -114,6 +114,7 @@ export default function ManualCodeEntryScreen() {
             <CodeBox char={code[2]} />
             <CodeBox char={code[3]} />
             <CodeBox char={code[4]} />
+            <CodeBox char={code[5]} />
           </TouchableOpacity>
 
           <Text style={styles.tapHint}>Tap the boxes to enter the code</Text>

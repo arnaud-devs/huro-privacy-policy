@@ -14,8 +14,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
+  dispatchBatch,
   fetchBatchDetail,
   loadSampleBatchDetail,
+  pickupOrder,
   setDeliveryPhase,
   SAMPLE_ORDER_DETAILS,
 } from "@/store/slices/riderSlice";
@@ -108,6 +110,47 @@ export default function PickupBatchScreen() {
     );
   };
 
+  const [isPickingUp, setIsPickingUp] = useState(false);
+
+  const confirmPickupAndDeliver = async () => {
+    setIsPickingUp(true);
+    const failed: string[] = [];
+
+    for (const order of pickupOrders) {
+      const result = await dispatch(pickupOrder(order.orderId));
+      if (!pickupOrder.fulfilled.match(result)) {
+        failed.push(order.orderId);
+      }
+    }
+
+    if (failed.length > 0 && failed.length === pickupOrders.length) {
+      setIsPickingUp(false);
+      Alert.alert("Pickup Failed", "Could not mark orders as picked up. Please try again.");
+      return;
+    }
+
+    if (failed.length > 0) {
+      Alert.alert(
+        "Partial Pickup",
+        `${pickupOrders.length - failed.length} marked as picked up, ${failed.length} failed.`
+      );
+    }
+
+    // Dispatch batch to move orders to IN_DELIVERY
+    if (batchId) {
+      const dispatchResult = await dispatch(dispatchBatch(batchId));
+      if (!dispatchBatch.fulfilled.match(dispatchResult)) {
+        setIsPickingUp(false);
+        Alert.alert("Dispatch Failed", (dispatchResult.payload as string) || "Could not dispatch batch. Please try again.");
+        return;
+      }
+    }
+
+    setIsPickingUp(false);
+    dispatch(setDeliveryPhase("delivering"));
+    router.push("/(rider)/active-delivery");
+  };
+
   const handleStartDelivery = () => {
     const outOfStock = pickupOrders.some((o) =>
       o.items.some((i) => i.status === "out-of-stock")
@@ -130,20 +173,13 @@ export default function PickupBatchScreen() {
         "Some items are out of stock. The customer will be notified. Continue with delivery?",
         [
           { text: "Cancel", style: "cancel" },
-          {
-            text: "Continue",
-            onPress: () => {
-              dispatch(setDeliveryPhase("delivering"));
-              router.push("/(rider)/active-delivery");
-            },
-          },
+          { text: "Continue", onPress: confirmPickupAndDeliver },
         ]
       );
       return;
     }
 
-    dispatch(setDeliveryPhase("delivering"));
-    router.push("/(rider)/active-delivery");
+    confirmPickupAndDeliver();
   };
 
   const statusIcon = (status: ItemStatus) => {
@@ -308,19 +344,28 @@ export default function PickupBatchScreen() {
           <TouchableOpacity
             style={[
               styles.deliveryBtn,
-              !allCollected && styles.deliveryBtnDisabled,
+              (!allCollected || isPickingUp) && styles.deliveryBtnDisabled,
             ]}
             activeOpacity={0.85}
             onPress={handleStartDelivery}
+            disabled={isPickingUp}
           >
-            <Ionicons
-              name="bicycle-outline"
-              size={20}
-              color="white"
-              style={{ marginRight: 8 }}
-            />
+            {isPickingUp ? (
+              <ActivityIndicator color="white" style={{ marginRight: 8 }} />
+            ) : (
+              <Ionicons
+                name="bicycle-outline"
+                size={20}
+                color="white"
+                style={{ marginRight: 8 }}
+              />
+            )}
             <Text style={styles.deliveryBtnText}>
-              {allCollected ? "Start Delivery" : "Collect All Items First"}
+              {isPickingUp
+                ? "Marking as Picked Up..."
+                : allCollected
+                ? "Start Delivery"
+                : "Collect All Items First"}
             </Text>
           </TouchableOpacity>
         </View>

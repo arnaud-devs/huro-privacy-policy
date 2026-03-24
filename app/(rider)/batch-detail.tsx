@@ -14,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
+  claimBatchOrder,
   claimOrders,
   fetchBatchDetail,
   loadSampleBatchDetail,
@@ -59,6 +60,21 @@ export default function BatchDetailScreen() {
     }
   }, [batchId]);
 
+  const riderCount = batchDetail?.riders?.length ?? 1;
+  const isSoloRider = riderCount <= 1;
+
+  // Auto-claim all orders when solo rider
+  useEffect(() => {
+    if (isSoloRider && batchDetail?.orders && batchId) {
+      const allOrderIds = batchDetail.orders.map((o) => o.id);
+      const unclaimed = allOrderIds.filter((id) => !claimedOrderIds.includes(id));
+      if (unclaimed.length > 0) {
+        dispatch(claimOrders(allOrderIds));
+        dispatch(setCurrentBatch(batchId));
+      }
+    }
+  }, [isSoloRider, batchDetail?.orders, batchId]);
+
   // Categorize orders
   const { availableOrders, takenOrders, myClaimedOrders } = useMemo(() => {
     const orders = batchDetail?.orders ?? [];
@@ -92,19 +108,53 @@ export default function BatchDetailScreen() {
     setSelectedIds(allAvailableIds);
   };
 
-  const handleClaimSelected = () => {
+  const [isClaiming, setIsClaiming] = useState(false);
+
+  const handleClaimSelected = async () => {
     if (selectedIds.length === 0) {
       Alert.alert("No Orders Selected", "Please select at least one order to claim.");
       return;
     }
-    dispatch(claimOrders(selectedIds));
-    dispatch(setCurrentBatch(batchId!));
+
+    setIsClaiming(true);
+    const failed: string[] = [];
+    const succeeded: string[] = [];
+
+    for (const orderId of selectedIds) {
+      const result = await dispatch(
+        claimBatchOrder({ batchId: batchId!, orderId })
+      );
+      if (claimBatchOrder.fulfilled.match(result)) {
+        succeeded.push(orderId);
+      } else {
+        failed.push(orderId);
+      }
+    }
+
+    // Also update local state for any that didn't go through API
+    if (succeeded.length > 0) {
+      dispatch(setCurrentBatch(batchId!));
+    }
+
+    setIsClaiming(false);
     setSelectedIds([]);
-    Alert.alert(
-      "Orders Claimed",
-      `You claimed ${selectedIds.length} order(s). Head to pickup!`,
-      [{ text: "OK" }]
-    );
+
+    if (failed.length === 0) {
+      Alert.alert(
+        "Orders Claimed",
+        `You claimed ${succeeded.length} order(s). Head to pickup!`
+      );
+    } else if (succeeded.length > 0) {
+      Alert.alert(
+        "Partially Claimed",
+        `${succeeded.length} claimed, ${failed.length} failed. Some orders may already be taken.`
+      );
+    } else {
+      Alert.alert("Claim Failed", "Could not claim the selected orders. They may already be taken by another rider.");
+    }
+
+    // Refresh batch detail to get updated state
+    dispatch(fetchBatchDetail(batchId!));
   };
 
   const handleStartPickup = () => {
@@ -219,157 +269,230 @@ export default function BatchDetailScreen() {
           </View>
         </View>
 
-        {/* My Claimed Orders */}
-        {myClaimedOrders.length > 0 && (
+        {/* ── SOLO RIDER: All orders auto-assigned ── */}
+        {isSoloRider ? (
           <>
             <View style={styles.sectionHeader}>
-              <Ionicons name="checkmark-circle" size={16} color="#10B981" />
-              <Text style={[styles.sectionTitle, { color: "#10B981" }]}>
-                MY CLAIMED ORDERS ({myClaimedOrders.length})
+              <Ionicons name="bag-handle" size={16} color="#1C74E9" />
+              <Text style={styles.sectionTitle}>
+                MY ORDERS ({myClaimedOrders.length})
               </Text>
             </View>
-            {myClaimedOrders.map((order) => (
-              <TouchableOpacity
-                key={order.id}
-                style={[styles.orderCard, styles.claimedCard]}
-                activeOpacity={0.7}
-                onPress={() =>
-                  router.push({
-                    pathname: "/(rider)/order-detail",
-                    params: { orderId: order.id },
-                  })
-                }
-              >
-                <View style={styles.orderCardHeader}>
-                  <View style={styles.orderIdWrap}>
-                    <Ionicons name="checkmark-circle" size={16} color="#10B981" />
-                    <Text style={styles.orderId}>
-                      #{order.id.slice(0, 8).toUpperCase()}
-                    </Text>
-                  </View>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                    <Text style={styles.claimedBadge}>CLAIMED</Text>
-                    <Ionicons name="chevron-forward" size={14} color="#94A3B8" />
-                  </View>
-                </View>
-                <Text style={styles.orderItemsList}>
-                  {(order.orderItems ?? [])
-                    .map((i) => `${i.productName} x${i.quantity}`)
-                    .join(", ")}
-                </Text>
-                <Text style={styles.orderItemCount}>
-                  {totalItems(order)} item(s)
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </>
-        )}
 
-        {/* Available Orders */}
-        <View style={styles.sectionHeader}>
-          <Ionicons name="bag-outline" size={16} color="#1C74E9" />
-          <Text style={styles.sectionTitle}>
-            AVAILABLE ORDERS ({availableOrders.length})
-          </Text>
-          {availableOrders.length > 0 && (
-            <TouchableOpacity onPress={selectAll} style={styles.selectAllBtn}>
-              <Text style={styles.selectAllText}>Select All</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {availableOrders.length === 0 ? (
-          <View style={styles.emptyWrap}>
-            <Ionicons name="bag-check-outline" size={32} color="#CBD5E1" />
-            <Text style={styles.emptyText}>All orders have been claimed</Text>
-          </View>
-        ) : (
-          availableOrders.map((order) => {
-            const isSelected = selectedIds.includes(order.id);
-            return (
-              <TouchableOpacity
-                key={order.id}
-                style={[styles.orderCard, isSelected && styles.selectedCard]}
-                activeOpacity={0.7}
-                onPress={() => toggleSelect(order.id)}
-              >
-                <View style={styles.orderCardHeader}>
-                  <View style={styles.orderIdWrap}>
-                    <View
-                      style={[
-                        styles.checkbox,
-                        isSelected && styles.checkboxChecked,
-                      ]}
-                    >
-                      {isSelected && (
-                        <Ionicons name="checkmark" size={14} color="white" />
-                      )}
+            {myClaimedOrders.length === 0 ? (
+              <View style={styles.emptyWrap}>
+                <Ionicons name="bag-outline" size={32} color="#CBD5E1" />
+                <Text style={styles.emptyText}>No orders in this batch yet</Text>
+              </View>
+            ) : (
+              myClaimedOrders.map((order) => (
+                <TouchableOpacity
+                  key={order.id}
+                  style={[styles.orderCard, styles.claimedCard]}
+                  activeOpacity={0.7}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/(rider)/order-detail",
+                      params: { orderId: order.id },
+                    })
+                  }
+                >
+                  <View style={styles.orderCardHeader}>
+                    <View style={styles.orderIdWrap}>
+                      <Ionicons name="bag-check" size={16} color="#1C74E9" />
+                      <Text style={styles.orderId}>
+                        #{order.id.slice(0, 8).toUpperCase()}
+                      </Text>
                     </View>
-                    <Text style={styles.orderId}>
-                      #{order.id.slice(0, 8).toUpperCase()}
-                    </Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                      <Text style={[styles.claimedBadge, { backgroundColor: "#DBEAFE", color: "#1C74E9" }]}>
+                        ASSIGNED
+                      </Text>
+                      <Ionicons name="chevron-forward" size={14} color="#94A3B8" />
+                    </View>
                   </View>
-                  <Text style={styles.itemCountBadge}>
-                    {totalItems(order)} items
+                  <Text style={styles.orderItemsList}>
+                    {(order.orderItems ?? [])
+                      .map((i) => `${i.productName} x${i.quantity}`)
+                      .join(", ")}
+                  </Text>
+                  <Text style={styles.orderItemCount}>
+                    {totalItems(order)} item(s)
+                  </Text>
+                </TouchableOpacity>
+              ))
+            )}
+
+            {/* Solo rider info banner */}
+            <View style={styles.soloInfoBanner}>
+              <Ionicons name="information-circle" size={18} color="#1C74E9" />
+              <Text style={styles.soloInfoText}>
+                You are the only rider on this batch. All orders are assigned to you.
+              </Text>
+            </View>
+          </>
+        ) : (
+          <>
+            {/* ── MULTI RIDER: Claim UI ── */}
+            {/* My Claimed Orders */}
+            {myClaimedOrders.length > 0 && (
+              <>
+                <View style={styles.sectionHeader}>
+                  <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+                  <Text style={[styles.sectionTitle, { color: "#10B981" }]}>
+                    MY CLAIMED ORDERS ({myClaimedOrders.length})
                   </Text>
                 </View>
-                <Text style={styles.orderItemsList}>
-                  {(order.orderItems ?? [])
-                    .map((i) => `${i.productName} x${i.quantity}`)
-                    .join(", ")}
-                </Text>
-              </TouchableOpacity>
-            );
-          })
-        )}
+                {myClaimedOrders.map((order) => (
+                  <TouchableOpacity
+                    key={order.id}
+                    style={[styles.orderCard, styles.claimedCard]}
+                    activeOpacity={0.7}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/(rider)/order-detail",
+                        params: { orderId: order.id },
+                      })
+                    }
+                  >
+                    <View style={styles.orderCardHeader}>
+                      <View style={styles.orderIdWrap}>
+                        <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+                        <Text style={styles.orderId}>
+                          #{order.id.slice(0, 8).toUpperCase()}
+                        </Text>
+                      </View>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                        <Text style={styles.claimedBadge}>CLAIMED</Text>
+                        <Ionicons name="chevron-forward" size={14} color="#94A3B8" />
+                      </View>
+                    </View>
+                    <Text style={styles.orderItemsList}>
+                      {(order.orderItems ?? [])
+                        .map((i) => `${i.productName} x${i.quantity}`)
+                        .join(", ")}
+                    </Text>
+                    <Text style={styles.orderItemCount}>
+                      {totalItems(order)} item(s)
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </>
+            )}
 
-        {/* Taken Orders */}
-        {takenOrders.length > 0 && (
-          <>
+            {/* Available Orders */}
             <View style={styles.sectionHeader}>
-              <Ionicons name="person-outline" size={16} color="#94A3B8" />
-              <Text style={[styles.sectionTitle, { color: "#94A3B8" }]}>
-                TAKEN BY OTHERS ({takenOrders.length})
+              <Ionicons name="bag-outline" size={16} color="#1C74E9" />
+              <Text style={styles.sectionTitle}>
+                AVAILABLE ORDERS ({availableOrders.length})
               </Text>
+              {availableOrders.length > 0 && (
+                <TouchableOpacity onPress={selectAll} style={styles.selectAllBtn}>
+                  <Text style={styles.selectAllText}>Select All</Text>
+                </TouchableOpacity>
+              )}
             </View>
-            {takenOrders.map((order) => (
-              <View key={order.id} style={[styles.orderCard, styles.takenCard]}>
-                <View style={styles.orderCardHeader}>
-                  <View style={styles.orderIdWrap}>
-                    <Ionicons name="lock-closed" size={14} color="#94A3B8" />
-                    <Text style={[styles.orderId, { color: "#94A3B8" }]}>
-                      #{order.id.slice(0, 8).toUpperCase()}
+
+            {availableOrders.length === 0 ? (
+              <View style={styles.emptyWrap}>
+                <Ionicons name="bag-check-outline" size={32} color="#CBD5E1" />
+                <Text style={styles.emptyText}>All orders have been claimed</Text>
+              </View>
+            ) : (
+              availableOrders.map((order) => {
+                const isSelected = selectedIds.includes(order.id);
+                return (
+                  <TouchableOpacity
+                    key={order.id}
+                    style={[styles.orderCard, isSelected && styles.selectedCard]}
+                    activeOpacity={0.7}
+                    onPress={() => toggleSelect(order.id)}
+                  >
+                    <View style={styles.orderCardHeader}>
+                      <View style={styles.orderIdWrap}>
+                        <View
+                          style={[
+                            styles.checkbox,
+                            isSelected && styles.checkboxChecked,
+                          ]}
+                        >
+                          {isSelected && (
+                            <Ionicons name="checkmark" size={14} color="white" />
+                          )}
+                        </View>
+                        <Text style={styles.orderId}>
+                          #{order.id.slice(0, 8).toUpperCase()}
+                        </Text>
+                      </View>
+                      <Text style={styles.itemCountBadge}>
+                        {totalItems(order)} items
+                      </Text>
+                    </View>
+                    <Text style={styles.orderItemsList}>
+                      {(order.orderItems ?? [])
+                        .map((i) => `${i.productName} x${i.quantity}`)
+                        .join(", ")}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })
+            )}
+
+            {/* Taken Orders */}
+            {takenOrders.length > 0 && (
+              <>
+                <View style={styles.sectionHeader}>
+                  <Ionicons name="person-outline" size={16} color="#94A3B8" />
+                  <Text style={[styles.sectionTitle, { color: "#94A3B8" }]}>
+                    TAKEN BY OTHERS ({takenOrders.length})
+                  </Text>
+                </View>
+                {takenOrders.map((order) => (
+                  <View key={order.id} style={[styles.orderCard, styles.takenCard]}>
+                    <View style={styles.orderCardHeader}>
+                      <View style={styles.orderIdWrap}>
+                        <Ionicons name="lock-closed" size={14} color="#94A3B8" />
+                        <Text style={[styles.orderId, { color: "#94A3B8" }]}>
+                          #{order.id.slice(0, 8).toUpperCase()}
+                        </Text>
+                      </View>
+                      <Text style={styles.takenBadge}>TAKEN</Text>
+                    </View>
+                    <Text style={[styles.orderItemsList, { color: "#94A3B8" }]}>
+                      {(order.orderItems ?? [])
+                        .map((i) => `${i.productName} x${i.quantity}`)
+                        .join(", ")}
                     </Text>
                   </View>
-                  <Text style={styles.takenBadge}>TAKEN</Text>
-                </View>
-                <Text style={[styles.orderItemsList, { color: "#94A3B8" }]}>
-                  {(order.orderItems ?? [])
-                    .map((i) => `${i.productName} x${i.quantity}`)
-                    .join(", ")}
-                </Text>
-              </View>
-            ))}
+                ))}
+              </>
+            )}
           </>
         )}
       </ScrollView>
 
       {/* Bottom Action Buttons */}
       <View style={styles.bottomBar}>
-        {selectedIds.length > 0 && (
+        {/* Claim button — only in multi-rider mode */}
+        {!isSoloRider && selectedIds.length > 0 && (
           <TouchableOpacity
-            style={styles.claimBtn}
+            style={[styles.claimBtn, isClaiming && { opacity: 0.6 }]}
             activeOpacity={0.85}
             onPress={handleClaimSelected}
+            disabled={isClaiming}
           >
-            <Ionicons
-              name="add-circle-outline"
-              size={20}
-              color="white"
-              style={{ marginRight: 8 }}
-            />
+            {isClaiming ? (
+              <ActivityIndicator color="white" style={{ marginRight: 8 }} />
+            ) : (
+              <Ionicons
+                name="add-circle-outline"
+                size={20}
+                color="white"
+                style={{ marginRight: 8 }}
+              />
+            )}
             <Text style={styles.claimBtnText}>
-              Claim {selectedIds.length} Order(s)
+              {isClaiming ? "Claiming..." : `Claim ${selectedIds.length} Order(s)`}
             </Text>
           </TouchableOpacity>
         )}
@@ -583,6 +706,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     marginTop: 8,
+  },
+
+  // Solo rider info banner
+  soloInfoBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#EFF6FF",
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 16,
+    gap: 8,
+  },
+  soloInfoText: {
+    flex: 1,
+    fontSize: 13,
+    color: "#1C74E9",
+    fontWeight: "500",
+    lineHeight: 18,
   },
 
   // Bottom Bar
