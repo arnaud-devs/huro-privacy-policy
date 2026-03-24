@@ -19,7 +19,6 @@ import {
   loadSampleBatchDetail,
   setCurrentBatch,
   setDeliveryPhase,
-  SAMPLE_BATCH_DETAIL,
   type BatchOrder,
 } from "@/store/slices/riderSlice";
 
@@ -230,7 +229,17 @@ export default function BatchDetailScreen() {
               </Text>
             </View>
             {myClaimedOrders.map((order) => (
-              <View key={order.id} style={[styles.orderCard, styles.claimedCard]}>
+              <TouchableOpacity
+                key={order.id}
+                style={[styles.orderCard, styles.claimedCard]}
+                activeOpacity={0.7}
+                onPress={() =>
+                  router.push({
+                    pathname: "/(rider)/order-detail",
+                    params: { orderId: order.id },
+                  })
+                }
+              >
                 <View style={styles.orderCardHeader}>
                   <View style={styles.orderIdWrap}>
                     <Ionicons name="checkmark-circle" size={16} color="#10B981" />
@@ -238,7 +247,10 @@ export default function BatchDetailScreen() {
                       #{order.id.slice(0, 8).toUpperCase()}
                     </Text>
                   </View>
-                  <Text style={styles.claimedBadge}>CLAIMED</Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <Text style={styles.claimedBadge}>CLAIMED</Text>
+                    <Ionicons name="chevron-forward" size={14} color="#94A3B8" />
+                  </View>
                 </View>
                 <Text style={styles.orderItemsList}>
                   {(order.orderItems ?? [])
@@ -248,7 +260,7 @@ export default function BatchDetailScreen() {
                 <Text style={styles.orderItemCount}>
                   {totalItems(order)} item(s)
                 </Text>
-              </View>
+              </TouchableOpacity>
             ))}
           </>
         )}

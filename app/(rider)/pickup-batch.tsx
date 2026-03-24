@@ -227,37 +227,49 @@ export default function PickupBatchScreen() {
                 key={order.orderId}
                 style={[styles.orderCard, orderDone && styles.orderCardDone]}
               >
-                <View style={styles.orderHeader}>
+                <TouchableOpacity
+                  style={styles.orderHeader}
+                  activeOpacity={0.7}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/(rider)/order-detail",
+                      params: { orderId: order.orderId },
+                    })
+                  }
+                >
                   <View>
                     <Text style={styles.customerName}>{order.customerName}</Text>
                     <Text style={styles.orderIdText}>
                       #{order.orderId.slice(0, 8).toUpperCase()}
                     </Text>
                   </View>
-                  <View
-                    style={[
-                      styles.orderStatusBadge,
-                      orderDone
-                        ? { backgroundColor: "#DCFCE7" }
-                        : { backgroundColor: "#FEF3C7" },
-                    ]}
-                  >
-                    <Text
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <View
                       style={[
-                        styles.orderStatusText,
+                        styles.orderStatusBadge,
                         orderDone
-                          ? { color: "#10B981" }
-                          : { color: "#F59E0B" },
+                          ? { backgroundColor: "#DCFCE7" }
+                          : { backgroundColor: "#FEF3C7" },
                       ]}
                     >
-                      {orderDone ? "READY" : `${orderCollected}/${order.items.length}`}
-                    </Text>
+                      <Text
+                        style={[
+                          styles.orderStatusText,
+                          orderDone
+                            ? { color: "#10B981" }
+                            : { color: "#F59E0B" },
+                        ]}
+                      >
+                        {orderDone ? "READY" : `${orderCollected}/${order.items.length}`}
+                      </Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
                   </View>
-                </View>
+                </TouchableOpacity>
 
-                {order.items.map((item) => (
+                {order.items.map((item, idx) => (
                   <TouchableOpacity
-                    key={item.id}
+                    key={`${order.orderId}-${item.id || idx}`}
                     style={styles.itemRow}
                     activeOpacity={0.6}
                     onPress={() => toggleItem(order.orderId, item.id)}
