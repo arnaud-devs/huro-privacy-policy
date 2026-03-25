@@ -1,46 +1,62 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
-import { useDispatch } from "react-redux";
+import { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { updatePendingListing, ListingCondition } from "@/store/slices/marketplaceSlice";
+import { fetchCategories, Category } from "@/store/slices/categoriesSlice";
+import { AppDispatch, RootState } from "@/store/store";
 import {
     KeyboardAvoidingView,
     Modal,
     Platform,
     ScrollView,
     StyleSheet,
+    Switch,
     Text,
     TextInput,
     TouchableOpacity,
     View,
+    ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const CATEGORIES = [
-  "Textbooks",
-  "Electronics",
-  "Clothing & Fashion",
-  "Furniture",
-  "Sports & Fitness",
-  "Food & Drinks",
-  "Services",
-  "Stationery",
-  "Other",
-];
 
-const CONDITIONS = ["New", "Like New", "Good", "Fair"] as const;
+const CONDITIONS = ["Like New", "Good", "Fair", "For Parts"] as const;
 type Condition = (typeof CONDITIONS)[number];
 
 export default function SellItemDetailsScreen() {
   const router = useRouter();
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
+  const { categories, isLoading: categoriesLoading } = useSelector((state: RootState) => state.categories);
+  const { pendingListing } = useSelector((state: RootState) => state.marketplace);
 
-  const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("");
-  const [price, setPrice] = useState("");
-  const [description, setDescription] = useState("");
-  const [condition, setCondition] = useState<Condition>("New");
+  const [title, setTitle] = useState(pendingListing.title || "");
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [price, setPrice] = useState(pendingListing.askingPrice ? String(pendingListing.askingPrice) : "");
+  const [isNegotiable, setIsNegotiable] = useState(pendingListing.isNegotiable || false);
+  const [description, setDescription] = useState(pendingListing.description || "");
+  
+  const getUiCondition = (c?: ListingCondition): Condition => {
+    if (c === 'LIKE_NEW') return "Like New";
+    if (c === 'GOOD') return "Good";
+    if (c === 'FAIR') return "Fair";
+    if (c === 'FOR_PARTS') return "For Parts";
+    return "Like New";
+  };
+
+  const [condition, setCondition] = useState<Condition>(getUiCondition(pendingListing.condition));
   const [categoryModalVisible, setCategoryModalVisible] = useState(false);
+
+  useEffect(() => {
+    dispatch(fetchCategories());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (categories.length > 0 && pendingListing.categoryId) {
+      const cat = categories.find(c => c.id === pendingListing.categoryId);
+      if (cat) setSelectedCategory(cat);
+    }
+  }, [categories, pendingListing.categoryId]);
 
   return (
     <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
@@ -92,9 +108,9 @@ export default function SellItemDetailsScreen() {
           onPress={() => setCategoryModalVisible(true)}
         >
           <Text
-            style={[styles.dropdownText, !category && { color: "#94a3b8" }]}
+            style={[styles.dropdownText, !selectedCategory && { color: "#94a3b8" }]}
           >
-            {category || "Select a category"}
+            {selectedCategory?.name || "Select a category"}
           </Text>
           <Ionicons name="chevron-down" size={18} color="#94a3b8" />
         </TouchableOpacity>
@@ -110,6 +126,21 @@ export default function SellItemDetailsScreen() {
           onChangeText={setPrice}
           returnKeyType="next"
         />
+
+        {/* Negotiable Toggle */}
+        <View className="flex-row items-center justify-between mb-4 px-1">
+          <View>
+              <Text style={[styles.label, { marginBottom: 2 }]}>Negotiable</Text>
+              <Text className="text-xs text-slate-500">Allow buyers to make offers</Text>
+          </View>
+          <Switch
+            trackColor={{ false: "#e2e8f0", true: "#1C74E9" }}
+            thumbColor={Platform.OS === "ios" ? "#fff" : isNegotiable ? "#fff" : "#f4f3f4"}
+            ios_backgroundColor="#e2e8f0"
+            onValueChange={setIsNegotiable}
+            value={isNegotiable}
+          />
+        </View>
 
         {/* Description */}
         <Text style={styles.label}>Description</Text>
@@ -168,22 +199,23 @@ export default function SellItemDetailsScreen() {
         <TouchableOpacity
           className="bg-primary rounded-full py-4 items-center mx-4 mb-2"
           onPress={() => {
-            if (!title || !price || !category || !condition) {
+            if (!title || !price || !selectedCategory || !condition) {
               alert("Please fill in all required fields.");
               return;
             }
             
             // Map UI condition to API condition
-            // "Like New" -> "LIKE_NEW", etc.
+            // "Like New" -> "LIKE_NEW", "For Parts" -> "FOR_PARTS", etc.
             const apiCondition = condition.toUpperCase().replace(/\s+/g, '_') as ListingCondition;
 
             dispatch(updatePendingListing({
               title,
-              categoryName: category,
+              categoryId: selectedCategory.id,
+              categoryName: selectedCategory.name,
               askingPrice: parseFloat(price) || 0,
               description,
               condition: apiCondition,
-              isNegotiable: true // default for now, add UI toggle if needed
+              isNegotiable: isNegotiable
             }));
             router.push("/sell-item-payment");
           }}
@@ -215,31 +247,34 @@ export default function SellItemDetailsScreen() {
             Select a Category
           </Text>
           <ScrollView>
-            {CATEGORIES.map((cat) => (
+            {categoriesLoading ? (
+               <ActivityIndicator style={{ marginTop: 20 }} color="#1C74E9" />
+            ) : (
+                categories.map((cat) => (
               <TouchableOpacity
-                key={cat}
+                key={cat.id}
                 style={[
                   styles.categoryRow,
-                  category === cat && styles.categoryRowActive,
+                  selectedCategory?.id === cat.id && styles.categoryRowActive,
                 ]}
                 onPress={() => {
-                  setCategory(cat);
+                  setSelectedCategory(cat);
                   setCategoryModalVisible(false);
                 }}
               >
                 <Text
                   style={[
                     styles.categoryRowText,
-                    category === cat && styles.categoryRowTextActive,
+                    selectedCategory?.id === cat.id && styles.categoryRowTextActive,
                   ]}
                 >
-                  {cat}
+                  {cat.name}
                 </Text>
-                {category === cat && (
+                {selectedCategory?.id === cat.id && (
                   <Ionicons name="checkmark" size={18} color="#1C74E9" />
                 )}
               </TouchableOpacity>
-            ))}
+            )))}
           </ScrollView>
         </View>
       </Modal>

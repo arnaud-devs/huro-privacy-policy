@@ -1,6 +1,4 @@
-import {
-  createListing
-} from "@/store/slices/marketplaceSlice";
+import { createListing } from "@/store/slices/marketplaceSlice";
 import { AppDispatch, RootState } from "@/store/store";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -33,29 +31,76 @@ export default function SellItemPaymentScreen() {
   const handlePublish = async () => {
     if (
       !pendingListing.title ||
+      !pendingListing.categoryId ||
+      !pendingListing.askingPrice ||
+      !pendingListing.condition ||
       !pendingListing.imageUris ||
       pendingListing.imageUris.length === 0
     ) {
-      alert("Missing listing information. Please go back.");
+      alert(
+        "Missing listing information. Please go back and ensure all fields are filled.",
+      );
       return;
     }
 
     try {
       // @ts-ignore - thunk typing can be tricky without custom hooks, but payload matches PendingListing
-      const resultAction = await dispatch(createListing(pendingListing as any)); // Force cast for now if needed, or better, type it
+      const resultAction = await dispatch(createListing(pendingListing as any));
+      console.log(
+        "Full create listing result:",
+        JSON.stringify(resultAction, null, 2),
+      );
 
       if (createListing.fulfilled.match(resultAction)) {
         // success
         router.replace("/sell-item-success");
       } else {
+        console.log("Listing creation failed:", resultAction);
         if (resultAction.payload) {
-          alert(`Error: ${resultAction.payload}`);
+          console.log("Error payload:", resultAction.payload);
+
+          let errorMessage = "";
+          const payload = resultAction.payload as any;
+
+          if (typeof payload === "string") {
+            try {
+              const parsed = JSON.parse(payload);
+              if (parsed.message) errorMessage = parsed.message;
+              if (parsed.details && Array.isArray(parsed.details)) {
+                errorMessage +=
+                  ":\n" +
+                  parsed.details
+                    .map((d: any) => `- ${d.field}: ${d.message}`)
+                    .join("\n");
+              }
+            } catch (e) {
+              errorMessage = payload;
+            }
+          } else if (typeof payload === "object") {
+            if (payload.message) errorMessage = payload.message;
+            if (payload.details && Array.isArray(payload.details)) {
+              errorMessage +=
+                ":\n" +
+                payload.details
+                  .map((d: any) => `- ${d.field}: ${d.message}`)
+                  .join("\n");
+            }
+          }
+
+          if (!errorMessage)
+            errorMessage =
+              typeof resultAction.payload === "string"
+                ? resultAction.payload
+                : JSON.stringify(resultAction.payload);
+
+          alert(`Error: ${errorMessage}`);
         } else {
+          console.log("No error payload returned");
           alert("Failed to create listing");
         }
       }
     } catch (err) {
-      console.error(err);
+      console.error("Listing creation error:", err);
       alert("An unexpected error occurred");
     }
   };

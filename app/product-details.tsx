@@ -1,93 +1,63 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useEffect } from "react";
+import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import ProductImageGallery from "@/components/product/ProductImageGallery";
 import ProductSellerCard from "@/components/product/ProductSellerCard";
-import ProductSpecifications from "@/components/product/ProductSpecifications";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchListingById } from "@/store/slices/marketplaceSlice";
 
-const PRODUCTS: Record<string, {
-  title: string;
-  price: string;
-  condition: string;
-  images: string[];
-  seller: { name: string; memberSince: string; rating: number };
-  meetingPoint: string;
-  description: string;
-  specifications: { label: string; value: string }[];
-}> = {
-  "1": {
-    title: "Bluetooth Speaker",
-    price: "10,000 RWF",
-    condition: "Good Condition",
-    images: [
-      "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?auto=format&fit=crop&w=800&q=80",
-      "https://images.unsplash.com/photo-1589003077984-894e133dabab?auto=format&fit=crop&w=800&q=80",
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=800&q=80",
-      "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80",
-    ],
-    seller: { name: "John D.", memberSince: "2023", rating: 4.8 },
-    meetingPoint: "UR CST",
-    description:
-      "High-quality portable bluetooth speaker with deep bass and crystal clear sound. Barely used during the last semester. It's waterproof and perfect for outdoor hangouts or study sessions. Battery still holds a full charge.",
-    specifications: [
-      { label: "Battery Life", value: "12 hours" },
-      { label: "Connectivity", value: "Bluetooth 5.0" },
-      { label: "Condition", value: "Used - Like New" },
-    ],
-  },
-  "2": {
-    title: "Nike Shoes",
-    price: "15,000 RWF",
-    condition: "Good Condition",
-    images: [
-      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80",
-      "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=800&q=80",
-      "https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?auto=format&fit=crop&w=800&q=80",
-    ],
-    seller: { name: "Sarah K.", memberSince: "2024", rating: 4.5 },
-    meetingPoint: "UR Nyarugenge",
-    description:
-      "Authentic Nike running shoes, size 42. Worn only a few times, still in excellent condition. Great for sports or everyday casual wear.",
-    specifications: [
-      { label: "Size", value: "42 EU" },
-      { label: "Color", value: "Red / White" },
-      { label: "Condition", value: "Used - Like New" },
-    ],
-  },
-  "3": {
-    title: "Organic Chemistry Set",
-    price: "5,000 RWF",
-    condition: "Fair Condition",
-    images: [
-      "https://images.unsplash.com/photo-1532012197267-da84d127e765?auto=format&fit=crop&w=800&q=80",
-      "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=800&q=80",
-    ],
-    seller: { name: "David L.", memberSince: "2022", rating: 4.9 },
-    meetingPoint: "UR CST Library",
-    description:
-      "Complete organic chemistry textbook and lab manual set. Some highlighting on a few pages but overall in good shape. Perfect for Year 2 chemistry students.",
-    specifications: [
-      { label: "Subject", value: "Organic Chemistry" },
-      { label: "Pages", value: "650+" },
-      { label: "Condition", value: "Used - Fair" },
-    ],
-  },
+const CONDITION_LABELS: Record<string, string> = {
+  LIKE_NEW: "Like New",
+  GOOD: "Good Condition",
+  FAIR: "Fair Condition",
+  FOR_PARTS: "For Parts",
 };
 
 export default function ProductDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const product = PRODUCTS[id ?? "1"];
+  const dispatch = useAppDispatch();
+  const { selectedListing, isFetchingDetail, detailError } = useAppSelector(
+    (state) => state.marketplace
+  );
 
-  if (!product) {
+  useEffect(() => {
+    if (id) dispatch(fetchListingById(id));
+  }, [id, dispatch]);
+
+  const formatPrice = (price: number | string) => {
+    const num = typeof price === "string" ? parseFloat(price) : price;
+    return `${(num / 1000).toFixed(0)},000 RWF`;
+  };
+
+  if (isFetchingDetail) {
     return (
       <SafeAreaView className="flex-1 bg-white items-center justify-center">
-        <Text className="text-base text-slate-500">Product not found</Text>
+        <ActivityIndicator size="large" color="#1C74E9" />
       </SafeAreaView>
     );
   }
+
+  if (detailError || !selectedListing) {
+    return (
+      <SafeAreaView className="flex-1 bg-white items-center justify-center px-4">
+        <Text className="text-slate-500 text-sm mb-4 text-center">
+          {detailError ?? "Listing not found"}
+        </Text>
+        <TouchableOpacity
+          className="bg-primary px-6 py-2 rounded-xl"
+          onPress={() => id && dispatch(fetchListingById(id))}
+        >
+          <Text className="text-white font-semibold text-sm">Retry</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
+  const listing = selectedListing;
 
   return (
     <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
@@ -104,44 +74,67 @@ export default function ProductDetailsScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
         {/* Image Gallery */}
-        <ProductImageGallery images={product.images} />
+        <ProductImageGallery images={listing.images ?? []} />
 
         {/* Condition Badge */}
         <View className="px-4 mt-4">
           <Text className="text-xs font-bold text-primary uppercase tracking-wider">
-            {product.condition}
+            {CONDITION_LABELS[listing.condition] ?? listing.condition}
           </Text>
         </View>
 
         {/* Title & Price */}
         <View className="px-4 mt-2">
-          <Text className="text-xl font-bold text-slate-900">{product.title}</Text>
-          <Text className="text-lg font-bold text-primary mt-1">{product.price}</Text>
+          <Text className="text-xl font-bold text-slate-900">{listing.title}</Text>
+          <View className="flex-row items-center mt-1 gap-3">
+            <Text className="text-lg font-bold text-primary">
+              {formatPrice(listing.askingPrice)}
+            </Text>
+            {listing.isNegotiable && (
+              <View className="bg-green-100 px-2 py-0.5 rounded-full">
+                <Text className="text-xs font-semibold text-green-700">Negotiable</Text>
+              </View>
+            )}
+          </View>
         </View>
 
         {/* Seller Card */}
-        <ProductSellerCard
-          name={product.seller.name}
-          memberSince={product.seller.memberSince}
-          rating={product.seller.rating}
-        />
-
-        {/* Meeting Point */}
-        <View className="flex-row items-center mx-4 mt-3">
-          <Ionicons name="location-outline" size={16} color="#64748b" />
-          <Text className="text-sm text-slate-500 ml-1">
-            Meeting point: {product.meetingPoint}
-          </Text>
-        </View>
+        {listing.seller && (
+          <ProductSellerCard
+            name={listing.seller.fullName ?? "Unknown"}
+            memberSince={new Date(listing.seller.createdAt ?? listing.createdAt).getFullYear().toString()}
+            rating={0}
+          />
+        )}
 
         {/* Description */}
-        <View className="mx-4 mt-6">
-          <Text className="text-lg font-bold text-slate-900 mb-2">Description</Text>
-          <Text className="text-sm text-slate-600 leading-6">{product.description}</Text>
-        </View>
+        {listing.description ? (
+          <View className="mx-4 mt-6">
+            <Text className="text-lg font-bold text-slate-900 mb-2">Description</Text>
+            <Text className="text-sm text-slate-600 leading-6">{listing.description}</Text>
+          </View>
+        ) : null}
 
-        {/* Specifications */}
-        <ProductSpecifications specs={product.specifications} />
+        {/* Details */}
+        <View className="mx-4 mt-6 bg-slate-50 rounded-2xl p-4 border border-slate-100">
+          <Text className="text-base font-bold text-slate-900 mb-3">Details</Text>
+          <View className="flex-row justify-between py-2 border-b border-slate-100">
+            <Text className="text-sm text-slate-500">Condition</Text>
+            <Text className="text-sm font-semibold text-slate-800">
+              {CONDITION_LABELS[listing.condition] ?? listing.condition}
+            </Text>
+          </View>
+          <View className="flex-row justify-between py-2 border-b border-slate-100">
+            <Text className="text-sm text-slate-500">Views</Text>
+            <Text className="text-sm font-semibold text-slate-800">{listing.viewCount}</Text>
+          </View>
+          <View className="flex-row justify-between py-2">
+            <Text className="text-sm text-slate-500">Listed</Text>
+            <Text className="text-sm font-semibold text-slate-800">
+              {new Date(listing.createdAt).toLocaleDateString()}
+            </Text>
+          </View>
+        </View>
 
         <View className="h-24" />
       </ScrollView>
@@ -150,7 +143,7 @@ export default function ProductDetailsScreen() {
       <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-100 px-4 py-4 pb-8">
         <TouchableOpacity
           className="bg-primary flex-row items-center justify-center py-4 rounded-2xl"
-          onPress={() => router.push({ pathname: '/chat', params: { productId: id } })}
+          onPress={() => router.push({ pathname: "/chat", params: { productId: id } })}
         >
           <Ionicons name="chatbubble-outline" size={18} color="white" />
           <Text className="text-white font-bold text-base ml-2">Get in Touch</Text>

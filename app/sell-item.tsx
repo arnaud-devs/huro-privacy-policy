@@ -1,18 +1,19 @@
+import { updatePendingListing } from "@/store/slices/marketplaceSlice";
+import { RootState } from "@/store/store";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import { useState } from "react";
-import { useDispatch } from "react-redux";
-import { updatePendingListing } from "@/store/slices/marketplaceSlice";
+import { useEffect, useState } from "react";
 import {
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useDispatch, useSelector } from "react-redux";
 
 type PhotoSlot = "main" | "back" | "optional";
 
@@ -25,11 +26,25 @@ interface PhotoState {
 export default function SellItemScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
+  const { pendingListing } = useSelector(
+    (state: RootState) => state.marketplace,
+  );
+
   const [photos, setPhotos] = useState<PhotoState>({
     main: null,
     back: null,
     optional: null,
   });
+
+  useEffect(() => {
+    if (pendingListing.imageUris && pendingListing.imageUris.length > 0) {
+      setPhotos({
+        main: pendingListing.imageUris[0] || null,
+        back: pendingListing.imageUris[1] || null,
+        optional: pendingListing.imageUris[2] || null,
+      });
+    }
+  }, [pendingListing.imageUris]);
 
   async function pickImage(slot: PhotoSlot) {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -43,7 +58,19 @@ export default function SellItemScreen() {
     });
 
     if (!result.canceled && result.assets[0]) {
-      setPhotos((prev) => ({ ...prev, [slot]: result.assets[0].uri }));
+      setPhotos((prev) => {
+        const newPhotos = { ...prev, [slot]: result.assets[0].uri };
+
+        // Also update redux immediately so it persists if we navigate
+        const imageUris = [
+          newPhotos.main,
+          newPhotos.back,
+          newPhotos.optional,
+        ].filter((uri): uri is string => !!uri);
+        dispatch(updatePendingListing({ imageUris }));
+
+        return newPhotos;
+      });
     }
   }
 
@@ -139,9 +166,11 @@ export default function SellItemScreen() {
               alert("Please add at least the main and back/side photos.");
               return;
             }
-            const imageUris = [photos.main, photos.back, photos.optional].filter(
-              (uri): uri is string => !!uri
-            );
+            const imageUris = [
+              photos.main,
+              photos.back,
+              photos.optional,
+            ].filter((uri): uri is string => !!uri);
             dispatch(updatePendingListing({ imageUris }));
             router.push("/sell-item-details");
           }}
