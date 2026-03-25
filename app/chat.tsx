@@ -15,7 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import ChatBubble, { Message } from "@/components/chat/ChatBubble";
 import ChatInputBar from "@/components/chat/ChatInputBar";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchMessages, clearMessages, ApiMessage } from "@/store/slices/messagingSlice";
+import { fetchMessages, clearMessages, appendMessage, sendMessage, ApiMessage } from "@/store/slices/messagingSlice";
 
 function formatTime(dateStr: string) {
   const date = new Date(dateStr);
@@ -122,7 +122,19 @@ export default function ChatScreen() {
           </ScrollView>
         )}
 
-        <ChatInputBar onSend={() => {}} />
+        <ChatInputBar onSend={(text) => {
+          if (!conversationId) return;
+          const tempId = `temp-${Date.now()}`;
+          dispatch(appendMessage({
+            id: tempId,
+            content: text,
+            senderId: currentUserId,
+            createdAt: new Date().toISOString(),
+            isRead: false,
+          }));
+          setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
+          dispatch(sendMessage({ conversationId, content: text, tempId }));
+        }} />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

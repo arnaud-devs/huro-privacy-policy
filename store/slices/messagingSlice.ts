@@ -147,6 +147,35 @@ export const fetchMessages = createAsyncThunk<
   }
 );
 
+export const sendMessage = createAsyncThunk<
+  ApiMessage,
+  { conversationId: string; content: string; tempId: string },
+  { state: { user: { tokens: { accessToken: string } | null; user?: { id: string } | null } }; rejectValue: string }
+>(
+  'messaging/sendMessage',
+  async ({ conversationId, content }, { getState, rejectWithValue }) => {
+    try {
+      const accessToken = getState().user.tokens?.accessToken;
+      if (!accessToken) return rejectWithValue('Not authenticated');
+
+      const response = await fetch(`${API_BASE_URL}/messaging/conversations/${conversationId}/messages`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) return rejectWithValue(data.error?.message ?? data.message ?? 'Failed to send message');
+      return (data.data?.message ?? data.data) as ApiMessage;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Network error');
+    }
+  }
+);
+
 export const startConversation = createAsyncThunk<
   ApiConversation,
   { listingId: string; message: string },
@@ -211,12 +240,18 @@ const messagingSlice = createSlice({
       })
       .addCase(fetchMessages.fulfilled, (state, action) => {
         state.isFetchingMessages = false;
-        state.messages = action.payload.messages;
+        state.messages = [...action.payload.messages].reverse();
         state.nextCursor = action.payload.nextCursor;
       })
       .addCase(fetchMessages.rejected, (state, action) => {
         state.isFetchingMessages = false;
         state.messagesError = action.payload ?? 'Failed to fetch messages';
+      })
+      .addCase(sendMessage.fulfilled, (state, action) => {
+        const tempId = action.meta.arg.tempId;
+        const idx = state.messages.findIndex((m) => m.id === tempId);
+        if (idx !== -1) state.messages[idx] = action.payload;
+        else state.messages.push(action.payload);
       })
       .addCase(startConversation.pending, (state) => {
         state.isStarting = true;
