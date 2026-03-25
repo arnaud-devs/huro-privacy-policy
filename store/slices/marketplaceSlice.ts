@@ -68,8 +68,14 @@ export const createListing = createAsyncThunk<
 
       payload.imageUris.forEach((uri, index) => {
         const filename = uri.split('/').pop() ?? `image_${index}.jpg`;
-        const ext = /\.(\w+)$/.exec(filename)?.[1] ?? 'jpg';
-        formData.append('images', { uri, name: filename, type: `image/${ext}` } as any);
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1] === 'jpg' ? 'jpeg' : match[1]}` : 'image/jpeg';
+        
+        formData.append('images', {
+          uri,
+          name: filename,
+          type,
+        } as any);
       });
 
       // Do NOT set Content-Type — fetch sets it automatically with the correct boundary

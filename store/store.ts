@@ -11,6 +11,7 @@ import ordersReducer from './slices/ordersSlice';
 import productsReducer from './slices/productsSlice';
 import riderReducer from './slices/riderSlice';
 import userReducer from './slices/userSlice';
+import marketplaceReducer from './slices/marketplaceSlice';
 
 // Only persist the fields needed to resume a delivery session
 const riderPersistConfig = {
@@ -32,6 +33,7 @@ export const store = configureStore({
     orders: ordersReducer,
     gates: gatesReducer,
     rider: persistedRiderReducer,
+    marketplace: marketplaceReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

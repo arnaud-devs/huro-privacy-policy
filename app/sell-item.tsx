@@ -2,6 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { useState } from "react";
+import { useDispatch } from "react-redux";
+import { updatePendingListing } from "@/store/slices/marketplaceSlice";
 import {
     Image,
     ScrollView,
@@ -22,6 +24,7 @@ interface PhotoState {
 
 export default function SellItemScreen() {
   const router = useRouter();
+  const dispatch = useDispatch();
   const [photos, setPhotos] = useState<PhotoState>({
     main: null,
     back: null,
@@ -131,7 +134,17 @@ export default function SellItemScreen() {
       <View style={styles.footer}>
         <TouchableOpacity
           className="bg-primary rounded-full py-4 items-center mx-4 mb-2"
-          onPress={() => router.push("/sell-item-details")}
+          onPress={() => {
+            if (!photos.main || !photos.back) {
+              alert("Please add at least the main and back/side photos.");
+              return;
+            }
+            const imageUris = [photos.main, photos.back, photos.optional].filter(
+              (uri): uri is string => !!uri
+            );
+            dispatch(updatePendingListing({ imageUris }));
+            router.push("/sell-item-details");
+          }}
         >
           <Text className="text-white font-bold text-base">Next</Text>
         </TouchableOpacity>

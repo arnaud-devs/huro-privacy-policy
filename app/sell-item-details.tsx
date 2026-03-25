@@ -1,6 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
+import { useDispatch } from "react-redux";
+import { updatePendingListing, ListingCondition } from "@/store/slices/marketplaceSlice";
 import {
     KeyboardAvoidingView,
     Modal,
@@ -31,6 +33,7 @@ type Condition = (typeof CONDITIONS)[number];
 
 export default function SellItemDetailsScreen() {
   const router = useRouter();
+  const dispatch = useDispatch();
 
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
@@ -164,7 +167,26 @@ export default function SellItemDetailsScreen() {
 
         <TouchableOpacity
           className="bg-primary rounded-full py-4 items-center mx-4 mb-2"
-          onPress={() => router.push("/sell-item-payment")}
+          onPress={() => {
+            if (!title || !price || !category || !condition) {
+              alert("Please fill in all required fields.");
+              return;
+            }
+            
+            // Map UI condition to API condition
+            // "Like New" -> "LIKE_NEW", etc.
+            const apiCondition = condition.toUpperCase().replace(/\s+/g, '_') as ListingCondition;
+
+            dispatch(updatePendingListing({
+              title,
+              categoryName: category,
+              askingPrice: parseFloat(price) || 0,
+              description,
+              condition: apiCondition,
+              isNegotiable: true // default for now, add UI toggle if needed
+            }));
+            router.push("/sell-item-payment");
+          }}
         >
           <Text className="text-white font-bold text-base">Next</Text>
         </TouchableOpacity>

@@ -1,7 +1,13 @@
+import {
+  createListing
+} from "@/store/slices/marketplaceSlice";
+import { AppDispatch, RootState } from "@/store/store";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
+  ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -12,11 +18,47 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useDispatch, useSelector } from "react-redux";
 
 export default function SellItemPaymentScreen() {
   const router = useRouter();
+  const dispatch = useDispatch<AppDispatch>();
+  const { pendingListing, isCreating } = useSelector(
+    (state: RootState) => state.marketplace,
+  );
+
   const [phoneNumber, setPhoneNumber] = useState("");
   const [payeeName, setPayeeName] = useState("");
+
+  const handlePublish = async () => {
+    if (
+      !pendingListing.title ||
+      !pendingListing.imageUris ||
+      pendingListing.imageUris.length === 0
+    ) {
+      alert("Missing listing information. Please go back.");
+      return;
+    }
+
+    try {
+      // @ts-ignore - thunk typing can be tricky without custom hooks, but payload matches PendingListing
+      const resultAction = await dispatch(createListing(pendingListing as any)); // Force cast for now if needed, or better, type it
+
+      if (createListing.fulfilled.match(resultAction)) {
+        // success
+        router.replace("/sell-item-success");
+      } else {
+        if (resultAction.payload) {
+          alert(`Error: ${resultAction.payload}`);
+        } else {
+          alert("Failed to create listing");
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      alert("An unexpected error occurred");
+    }
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
@@ -45,115 +87,133 @@ export default function SellItemPaymentScreen() {
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 24 }}
-        keyboardShouldPersistTaps="handled"
-      >
-        {/* Item Summary */}
-        <View className="px-4 pt-5 pb-2">
-          <Text style={styles.sectionLabel}>ITEM SUMMARY</Text>
-        </View>
-        <View style={styles.card}>
-          <View className="flex-row items-center">
-            {/* Placeholder book image */}
-            <View style={styles.itemThumb}>
-              <Ionicons name="book-outline" size={32} color="#94a3b8" />
-            </View>
-            <View className="ml-3 flex-1">
-              <Text className="text-sm font-bold text-slate-800">
-                Used Calculus Textbook
-              </Text>
-              <Text style={styles.priceText}>Price: 15,000 RWF</Text>
-              <Text className="text-xs text-slate-400 mt-0.5">
-                Category: Books & Education
-              </Text>
-            </View>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 24 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Item Summary */}
+          <View className="px-4 pt-5 pb-2">
+            <Text style={styles.sectionLabel}>ITEM SUMMARY</Text>
           </View>
-        </View>
-
-        {/* Listing Fee */}
-        <View style={styles.feeCard}>
-          <Text className="text-sm text-slate-500 mb-1">Listing Fee</Text>
-          <Text style={styles.feeAmount}>500 RWF</Text>
-          <Text className="text-xs text-slate-400 text-center mt-1">
-            This fee helps us keep the marketplace safe and active.
-          </Text>
-        </View>
-
-        {/* Payment Method */}
-        <View className="px-4 pt-5 pb-2">
-          <Text style={styles.sectionLabel}>PAYMENT METHOD</Text>
-        </View>
-
-        <View className="px-4">
-          {/* Mobile Money option */}
-          <View style={styles.paymentOption}>
-            <View style={styles.mmIcon}>
-              <MaterialIcons name="phone-android" size={22} color="white" />
-            </View>
-            <View className="flex-1 ml-3">
-              <Text className="text-sm font-bold text-slate-800">
-                Mobile Money
-              </Text>
-              <Text className="text-xs text-slate-500">*182*8*1*397680#</Text>
-            </View>
-            <View style={styles.checkCircle}>
-              <Ionicons name="checkmark" size={14} color="white" />
+          <View style={styles.card}>
+            <View className="flex-row items-center">
+              {/* Placeholder book image */}
+              <View style={styles.itemThumb}>
+                {pendingListing.imageUris?.[0] ? (
+                  // @ts-ignore - image uri
+                  <Image
+                    source={{ uri: pendingListing.imageUris[0] }}
+                    style={{ width: "100%", height: "100%", borderRadius: 10 }}
+                  />
+                ) : (
+                  <Ionicons name="book-outline" size={32} color="#94a3b8" />
+                )}
+              </View>
+              <View className="ml-3 flex-1">
+                <Text className="text-sm font-bold text-slate-800">
+                  {pendingListing.title || "Untitled Listing"}
+                </Text>
+                <Text style={styles.priceText}>
+                  Price: {pendingListing.askingPrice?.toLocaleString()} RWF
+                </Text>
+                <Text className="text-xs text-slate-400 mt-0.5">
+                  Category: {pendingListing.categoryName || "Uncategorized"}
+                </Text>
+              </View>
             </View>
           </View>
 
-          {/* Number Used to Pay */}
-          <Text style={styles.fieldLabel}>Number Used to Pay</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="+250 7** *** ***"
-            placeholderTextColor="#94a3b8"
-            keyboardType="phone-pad"
-            value={phoneNumber}
-            onChangeText={setPhoneNumber}
-            returnKeyType="next"
-          />
-
-          {/* Name of Payee */}
-          <Text style={styles.fieldLabel}>Name of Payee</Text>
-          <TextInput
-            style={styles.input}
-            placeholder=""
-            placeholderTextColor="#94a3b8"
-            value={payeeName}
-            onChangeText={setPayeeName}
-            returnKeyType="done"
-          />
-
-          {/* Secure badge */}
-          <View className="flex-row items-center justify-center mt-4 mb-2">
-            <Ionicons name="lock-closed-outline" size={13} color="#94a3b8" />
-            <Text className="text-xs text-slate-400 ml-1">
-              Secure Payment Processing
+          {/* Listing Fee */}
+          <View style={styles.feeCard}>
+            <Text className="text-sm text-slate-500 mb-1">Listing Fee</Text>
+            <Text style={styles.feeAmount}>500 RWF</Text>
+            <Text className="text-xs text-slate-400 text-center mt-1">
+              This fee helps us keep the marketplace safe and active.
             </Text>
           </View>
+
+          {/* Payment Method */}
+          <View className="px-4 pt-5 pb-2">
+            <Text style={styles.sectionLabel}>PAYMENT METHOD</Text>
+          </View>
+
+          <View className="px-4">
+            {/* Mobile Money option */}
+            <View style={styles.paymentOption}>
+              <View style={styles.mmIcon}>
+                <MaterialIcons name="phone-android" size={22} color="white" />
+              </View>
+              <View className="flex-1 ml-3">
+                <Text className="text-sm font-bold text-slate-800">
+                  Mobile Money
+                </Text>
+                <Text className="text-xs text-slate-500">*182*8*1*397680#</Text>
+              </View>
+              <View style={styles.checkCircle}>
+                <Ionicons name="checkmark" size={14} color="white" />
+              </View>
+            </View>
+
+            {/* Number Used to Pay */}
+            <Text style={styles.fieldLabel}>Number Used to Pay</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="+250 7** *** ***"
+              placeholderTextColor="#94a3b8"
+              keyboardType="phone-pad"
+              value={phoneNumber}
+              onChangeText={setPhoneNumber}
+              returnKeyType="next"
+            />
+
+            {/* Name of Payee */}
+            <Text style={styles.fieldLabel}>Name of Payee</Text>
+            <TextInput
+              style={styles.input}
+              placeholder=""
+              placeholderTextColor="#94a3b8"
+              value={payeeName}
+              onChangeText={setPayeeName}
+              returnKeyType="done"
+            />
+
+            {/* Secure badge */}
+            <View className="flex-row items-center justify-center mt-4 mb-2">
+              <Ionicons name="lock-closed-outline" size={13} color="#94a3b8" />
+              <Text className="text-xs text-slate-400 ml-1">
+                Secure Payment Processing
+              </Text>
+            </View>
+          </View>
+        </ScrollView>
+
+        {/* Bottom CTA */}
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={[styles.ctaButton, isCreating && { opacity: 0.7 }]}
+            disabled={isCreating}
+            onPress={handlePublish}
+          >
+            {isCreating ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <>
+                <Text style={styles.ctaText}>Pay &amp; Post Listing</Text>
+                <Ionicons
+                  name="arrow-forward"
+                  size={18}
+                  color="white"
+                  style={{ marginLeft: 6 }}
+                />
+              </>
+            )}
+          </TouchableOpacity>
+          <Text className="text-center text-xs text-slate-400 px-6 mt-2">
+            By clicking "Pay &amp; Post", you agree to our Terms of Service
+            regarding marketplace listings and fees.
+          </Text>
         </View>
-      </ScrollView>
-
-      {/* Bottom CTA */}
-      <View style={styles.footer}>
-
-        <TouchableOpacity
-          style={styles.ctaButton}
-          onPress={() => {
-            /* handle payment & post */
-            router.replace("/sell-item-success");
-          }}
-        >
-          <Text style={styles.ctaText}>Pay &amp; Post Listing</Text>
-          <Ionicons name="arrow-forward" size={18} color="white" style={{ marginLeft: 6 }} />
-        </TouchableOpacity>
-        <Text className="text-center text-xs text-slate-400 px-6 mt-2">
-          By clicking "Pay &amp; Post", you agree to our Terms of Service
-          regarding marketplace listings and fees.
-        </Text>
-      </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
