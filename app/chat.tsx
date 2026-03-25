@@ -1,133 +1,66 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useRef } from "react";
 import {
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import ChatBubble, { Message } from "@/components/chat/ChatBubble";
 import ChatInputBar from "@/components/chat/ChatInputBar";
-import ChatProductCard from "@/components/chat/ChatProductCard";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchMessages, clearMessages, ApiMessage } from "@/store/slices/messagingSlice";
 
-const BUYER_AVATAR =
-  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80";
-const SELLER_AVATAR =
-  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80";
+function formatTime(dateStr: string) {
+  const date = new Date(dateStr);
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
 
-const CONVERSATIONS: Record<
-  string,
-  {
-    sellerName: string;
-    product: { title: string; price: string; image: string };
-    messages: Message[];
-    offerAmount?: string;
-  }
-> = {
-  "1": {
-    sellerName: "John",
-    product: {
-      title: "Bluetooth Speaker",
-      price: "RWF 4,500",
-      image:
-        "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?auto=format&fit=crop&w=800&q=80",
-    },
-    messages: [
-      {
-        id: "1",
-        text: "Hi Alex, is the Bluetooth speaker still available?",
-        time: "10:42 AM",
-        isMe: false,
-        avatar: BUYER_AVATAR,
-      },
-      {
-        id: "2",
-        text: "Yes, it is! Are you interested?",
-        time: "10:45 AM",
-        isMe: true,
-        avatar: SELLER_AVATAR,
-        read: true,
-      },
-      {
-        id: "3",
-        text: "Would you take $35 for it? I can pick it up today on campus after my lecture at 4 PM.",
-        time: "10:48 AM",
-        isMe: false,
-        avatar: BUYER_AVATAR,
-      },
-    ],
-    offerAmount: "$35",
-  },
-  "2": {
-    sellerName: "Sarah",
-    product: {
-      title: "Nike Shoes",
-      price: "RWF 15,000",
-      image:
-        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80",
-    },
-    messages: [
-      {
-        id: "1",
-        text: "Hi, are the Nike shoes still available?",
-        time: "2:10 PM",
-        isMe: true,
-        avatar: SELLER_AVATAR,
-        read: true,
-      },
-      {
-        id: "2",
-        text: "Yes they are! Size 42, barely worn.",
-        time: "2:15 PM",
-        isMe: false,
-        avatar: BUYER_AVATAR,
-      },
-    ],
-  },
-  "3": {
-    sellerName: "David",
-    product: {
-      title: "Organic Chemistry Set",
-      price: "RWF 5,000",
-      image:
-        "https://images.unsplash.com/photo-1532012197267-da84d127e765?auto=format&fit=crop&w=800&q=80",
-    },
-    messages: [
-      {
-        id: "1",
-        text: "Is the chemistry set complete?",
-        time: "9:00 AM",
-        isMe: true,
-        avatar: SELLER_AVATAR,
-        read: true,
-      },
-      {
-        id: "2",
-        text: "Yes, textbook and lab manual both included!",
-        time: "9:05 AM",
-        isMe: false,
-        avatar: BUYER_AVATAR,
-      },
-    ],
-  },
-};
+function toMessage(msg: ApiMessage, currentUserId: string, otherAvatarUrl?: string): Message {
+  const isMe = msg.senderId === currentUserId;
+  return {
+    id: msg.id,
+    text: msg.content,
+    time: formatTime(msg.createdAt),
+    isMe,
+    avatar: isMe ? undefined : (msg.sender?.avatarUrl ?? otherAvatarUrl),
+    read: msg.isRead,
+  };
+}
 
 export default function ChatScreen() {
-  const { productId } = useLocalSearchParams<{ productId: string }>();
+  const { conversationId } = useLocalSearchParams<{ conversationId: string }>();
   const router = useRouter();
-  const conversation = CONVERSATIONS[productId ?? "1"];
+  const dispatch = useAppDispatch();
+  const scrollRef = useRef<ScrollView>(null);
 
-  if (!conversation) {
-    return (
-      <SafeAreaView className="flex-1 bg-white items-center justify-center">
-        <Text className="text-base text-slate-500">Conversation not found</Text>
-      </SafeAreaView>
-    );
-  }
+  const currentUserId = useAppSelector((s) => (s.user as any).user?.id ?? "");
+  const { messages, isFetchingMessages, messagesError } = useAppSelector((s) => s.messaging);
+  const conversation = useAppSelector((s) =>
+    s.messaging.conversations.find((c) => c.id === conversationId)
+  );
+
+  useEffect(() => {
+    if (conversationId) {
+      dispatch(fetchMessages({ conversationId, limit: 30 }));
+    }
+    return () => { dispatch(clearMessages()); };
+  }, [conversationId, dispatch]);
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: false }), 100);
+    }
+  }, [messages.length]);
+
+  const otherName = conversation?.otherParticipant?.fullName ?? "Chat";
+  const listingTitle = conversation?.listing?.title;
 
   return (
     <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
@@ -136,16 +69,12 @@ export default function ChatScreen() {
         <TouchableOpacity onPress={() => router.back()} className="mr-3">
           <Ionicons name="arrow-back" size={24} color="#0f172a" />
         </TouchableOpacity>
-
         <View className="flex-1 items-center">
-          <Text className="text-lg font-bold text-slate-900">
-            {conversation.sellerName} (Verified Student)
-          </Text>
-          <Text className="text-xs font-bold" style={{ color: "#22c55e" }}>
-            ONLINE
-          </Text>
+          <Text className="text-lg font-bold text-slate-900">{otherName}</Text>
+          {listingTitle && (
+            <Text className="text-xs text-slate-400" numberOfLines={1}>{listingTitle}</Text>
+          )}
         </View>
-
         <TouchableOpacity>
           <Ionicons name="ellipsis-vertical" size={20} color="#0f172a" />
         </TouchableOpacity>
@@ -153,52 +82,46 @@ export default function ChatScreen() {
 
       <KeyboardAvoidingView
         className="flex-1"
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={0}
+        behavior="padding"
+        keyboardVerticalOffset={Platform.OS === "android" ? 0 : 0}
       >
-        {/* Messages */}
-        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-          {/* Product Card */}
-          <ChatProductCard
-            title={conversation.product.title}
-            price={conversation.product.price}
-            image={conversation.product.image}
-            onViewListing={() =>
-              router.push({
-                pathname: "/product-details",
-                params: { id: productId },
-              })
-            }
-            onMakeOffer={() => {}}
-          />
-
-          {/* Date separator */}
-          <View className="items-center my-3">
-            <Text className="text-xxs text-slate-400 font-semibold uppercase tracking-wider">
-              Today
-            </Text>
+        {isFetchingMessages ? (
+          <View className="flex-1 items-center justify-center">
+            <ActivityIndicator size="large" color="#1C74E9" />
           </View>
-
-          {/* Chat messages */}
-          {conversation.messages.map((msg) => (
-            <ChatBubble key={msg.id} message={msg} />
-          ))}
-
-          {/* Offer notification */}
-          {conversation.offerAmount && (
-            <View className="items-center my-4">
-              <View className="border border-primary rounded-full px-5 py-2">
-                <Text className="text-sm font-semibold text-primary">
-                  Offer received: {conversation.offerAmount}.00
+        ) : messagesError ? (
+          <View className="flex-1 items-center justify-center px-4">
+            <Text className="text-slate-500 text-sm mb-4 text-center">{messagesError}</Text>
+            <TouchableOpacity
+              className="bg-primary px-6 py-2 rounded-xl"
+              onPress={() => conversationId && dispatch(fetchMessages({ conversationId, limit: 30 }))}
+            >
+              <Text className="text-white font-semibold text-sm">Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <ScrollView
+            ref={scrollRef}
+            className="flex-1"
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingTop: 12, paddingBottom: 8 }}
+          >
+            {messages.length === 0 ? (
+              <View className="items-center mt-16 px-8">
+                <Ionicons name="chatbubbles-outline" size={48} color="#cbd5e1" />
+                <Text className="text-slate-400 text-sm mt-3 text-center">
+                  No messages yet. Say hello!
                 </Text>
               </View>
-            </View>
-          )}
+            ) : (
+              messages.map((msg) => (
+                <ChatBubble key={msg.id} message={toMessage(msg, currentUserId, conversation?.otherParticipant?.avatarUrl)} />
+              ))
+            )}
+            <View className="h-4" />
+          </ScrollView>
+        )}
 
-          <View className="h-4" />
-        </ScrollView>
-
-        {/* Input + Quick Actions */}
         <ChatInputBar onSend={() => {}} />
       </KeyboardAvoidingView>
     </SafeAreaView>

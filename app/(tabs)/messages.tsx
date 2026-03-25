@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   StyleSheet,
   Text,
@@ -10,80 +11,63 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import ConversationItem, {
-  Conversation,
-} from "@/components/messages/ConversationItem";
 import CartIconButton from "@/components/common/CartIconButton";
+import ConversationItem, { Conversation } from "@/components/messages/ConversationItem";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchConversations, ApiConversation } from "@/store/slices/messagingSlice";
 
 type Filter = "All" | "Unread";
 
-const CONVERSATIONS: Conversation[] = [
-  {
-    id: "1",
-    name: "Alice (Seller)",
-    contextLabel: "JBL Speaker Listing",
-    lastMessage: "Is the item still available?",
-    time: "2 min ago",
-    unread: true,
+function timeAgo(dateStr?: string) {
+  if (!dateStr) return "";
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
+function toConversation(c: ApiConversation): Conversation {
+  return {
+    id: c.id,
+    name: c.otherParticipant?.fullName ?? "Unknown",
+    contextLabel: c.listing?.title ?? "Marketplace",
+    lastMessage: c.lastMessage?.content ?? "",
+    time: timeAgo(c.lastMessage?.createdAt ?? c.updatedAt),
+    unread: (c.unreadCount ?? 0) > 0,
     type: "seller",
-    avatar:
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80",
-  },
-  {
-    id: "2",
-    name: "Campus Store",
-    contextLabel: "Snack Pack Order",
-    lastMessage: "Your order is being prepared.",
-    time: "10 min ago",
-    unread: false,
-    type: "store",
-  },
-  {
-    id: "3",
-    name: "Rider Jean",
-    contextLabel: "Delivery Order #1023",
-    lastMessage: "I am near the main gate.",
-    time: "25 min ago",
-    unread: false,
-    type: "rider",
-    avatar:
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
-  },
-  {
-    id: "4",
-    name: "Mike S.",
-    contextLabel: "Dorm Desk Lamp",
-    lastMessage: "Can you do $10 for it?",
-    time: "2 hours ago",
-    unread: false,
-    type: "buyer",
-    avatar:
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80",
-  },
-];
+    avatar: c.otherParticipant?.avatarUrl,
+  };
+}
 
 export default function MessagesScreen() {
   const [filter, setFilter] = useState<Filter>("All");
   const router = useRouter();
+  const dispatch = useAppDispatch();
+  const { conversations, isFetching, fetchError } = useAppSelector((s) => s.messaging);
 
-  const displayed =
-    filter === "Unread" ? CONVERSATIONS.filter((c) => c.unread) : CONVERSATIONS;
+  useEffect(() => {
+    dispatch(fetchConversations({ limit: 20 }));
+  }, [dispatch]);
+
+  const mapped = conversations.map(toConversation);
+  const displayed = filter === "Unread" ? mapped.filter((c) => c.unread) : mapped;
 
   return (
     <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
       {/* Header */}
       <View className="flex-row items-center px-4 py-3 border-b border-slate-100">
-        <Text className="flex-1 text-xl font-bold text-slate-900">
-          Messages
-        </Text>
+        <Text className="flex-1 text-xl font-bold text-slate-900">Messages</Text>
         <View className="flex-row items-center gap-3">
           <TouchableOpacity>
             <Ionicons name="search-outline" size={22} color="#0f172a" />
           </TouchableOpacity>
           <CartIconButton />
-          <TouchableOpacity style={{ position: "relative" }}>
+          <TouchableOpacity onPress={() => dispatch(fetchConversations({ limit: 20 }))} style={{ position: "relative" }}>
             <Ionicons name="notifications-outline" size={22} color="#0F172A" />
-            <View style={styles.dotBadge} />
+            {mapped.some((c) => c.unread) && <View style={styles.dotBadge} />}
           </TouchableOpacity>
         </View>
       </View>
@@ -99,9 +83,7 @@ export default function MessagesScreen() {
           >
             <Text
               className="text-sm font-semibold"
-              style={
-                filter === f ? styles.pillTextActive : styles.pillTextInactive
-              }
+              style={filter === f ? styles.pillTextActive : styles.pillTextInactive}
             >
               {f}
             </Text>
@@ -109,28 +91,44 @@ export default function MessagesScreen() {
         ))}
       </View>
 
-      {/* Conversation list */}
-      <FlatList
-        data={displayed}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item, index }) => (
-          <>
-            <ConversationItem
-              item={item}
-              onPress={(conv) =>
-                router.push({
-                  pathname: "/chat",
-                  params: { productId: conv.id },
-                })
-              }
-            />
-            {index < displayed.length - 1 && (
-              <View className="h-px bg-slate-100 mx-4" />
-            )}
-          </>
-        )}
-        showsVerticalScrollIndicator={false}
-      />
+      {isFetching ? (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#1C74E9" />
+        </View>
+      ) : fetchError ? (
+        <View className="flex-1 items-center justify-center px-4">
+          <Text className="text-slate-500 text-sm mb-4 text-center">{fetchError}</Text>
+          <TouchableOpacity
+            className="bg-primary px-6 py-2 rounded-xl"
+            onPress={() => dispatch(fetchConversations({ limit: 20 }))}
+          >
+            <Text className="text-white font-semibold text-sm">Retry</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <FlatList
+          data={displayed}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item, index }) => (
+            <>
+              <ConversationItem
+                item={item}
+                onPress={(conv) =>
+                  router.push({ pathname: "/chat", params: { conversationId: conv.id } })
+                }
+              />
+              {index < displayed.length - 1 && <View className="h-px bg-slate-100 mx-4" />}
+            </>
+          )}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View className="flex-1 items-center justify-center py-20">
+              <Ionicons name="chatbubbles-outline" size={48} color="#cbd5e1" />
+              <Text className="text-sm text-slate-400 mt-3">No conversations yet</Text>
+            </View>
+          }
+        />
+      )}
     </SafeAreaView>
   );
 }

@@ -78,7 +78,11 @@ function ListingCard({ item }: { item: Listing }) {
 
       <View style={styles.divider} />
       <View className="flex-row items-center">
-        <TouchableOpacity style={styles.actionBtn} className="flex-row items-center gap-1">
+        <TouchableOpacity
+          style={styles.actionBtn}
+          className="flex-row items-center gap-1"
+          onPress={() => router.push({ pathname: "/edit-listing", params: { id: item.id } })}
+        >
           <Ionicons name="pencil-outline" size={14} color="#475569" />
           <Text style={styles.actionText}>Edit</Text>
         </TouchableOpacity>

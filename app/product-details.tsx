@@ -1,13 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect } from "react";
-import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import ProductImageGallery from "@/components/product/ProductImageGallery";
 import ProductSellerCard from "@/components/product/ProductSellerCard";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchListingById } from "@/store/slices/marketplaceSlice";
+import { startConversation } from "@/store/slices/messagingSlice";
 
 const CONDITION_LABELS: Record<string, string> = {
   LIKE_NEW: "Like New",
@@ -23,6 +24,22 @@ export default function ProductDetailsScreen() {
   const { selectedListing, isFetchingDetail, detailError } = useAppSelector(
     (state) => state.marketplace
   );
+  const { isStarting } = useAppSelector((state) => state.messaging);
+
+  async function handleGetInTouch() {
+    if (!id) return;
+    const result = await dispatch(startConversation({ listingId: id, message: "Hi, is this still available?" }));
+    if (startConversation.fulfilled.match(result)) {
+      router.push({ pathname: "/chat", params: { conversationId: result.payload.id } });
+    } else {
+      const msg = result.payload as string ?? "";
+      if (msg.toLowerCase().includes("profile incomplete") || msg.toLowerCase().includes("full name")) {
+        router.push({ pathname: "/profile-setup", params: { returnListingId: id } });
+      } else {
+        Alert.alert("Error", msg || "Could not start conversation");
+      }
+    }
+  }
 
   useEffect(() => {
     if (id) dispatch(fetchListingById(id));
@@ -143,10 +160,17 @@ export default function ProductDetailsScreen() {
       <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-100 px-4 py-4 pb-8">
         <TouchableOpacity
           className="bg-primary flex-row items-center justify-center py-4 rounded-2xl"
-          onPress={() => router.push({ pathname: "/chat", params: { productId: id } })}
+          onPress={handleGetInTouch}
+          disabled={isStarting}
         >
-          <Ionicons name="chatbubble-outline" size={18} color="white" />
-          <Text className="text-white font-bold text-base ml-2">Get in Touch</Text>
+          {isStarting ? (
+            <ActivityIndicator color="white" size="small" />
+          ) : (
+            <>
+              <Ionicons name="chatbubble-outline" size={18} color="white" />
+              <Text className="text-white font-bold text-base ml-2">Get in Touch</Text>
+            </>
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
