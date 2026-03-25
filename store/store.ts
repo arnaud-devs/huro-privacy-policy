@@ -16,7 +16,7 @@ import userReducer from './slices/userSlice';
 const riderPersistConfig = {
   key: 'rider',
   storage: AsyncStorage,
-  whitelist: ['deliveryPhase', 'claimedOrderIds', 'currentBatchId', 'deliveredOrderIds', 'pickedUpOrderIds'],
+  whitelist: ['deliveryPhase', 'claimedOrderIds', 'currentBatchId', 'deliveredOrderIds', 'pickedUpOrderIds', 'orderDetailsMap'],
 };
 
 const persistedRiderReducer = persistReducer(riderPersistConfig, riderReducer);

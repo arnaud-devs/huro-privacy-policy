@@ -15,8 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   fetchRiderBatches,
-  loadSampleBatches,
-  setDeliveryPhase,
+  fetchRiderOrders,
   type RiderBatch,
 } from "@/store/slices/riderSlice";
 
@@ -36,27 +35,35 @@ function minsUntil(iso: string): string {
 export default function RiderHomeScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { batches, isFetchingBatches, deliveryPhase, claimedOrderIds, currentBatchId, deliveredOrderIds, pickedUpOrderIds } =
-    useAppSelector((state) => state.rider);
+  const {
+    batches, isFetchingBatches,
+    orders,
+    deliveryPhase, claimedOrderIds, currentBatchId, deliveredOrderIds, pickedUpOrderIds,
+  } = useAppSelector((state) => state.rider);
   const user = useAppSelector((state) => state.user.user);
 
   useEffect(() => {
-    // Only fetch if user is a rider — prevents 403 when customer screen is mounted
     if (user?.role?.toUpperCase() !== "RIDER") return;
-    dispatch(fetchRiderBatches()).then((result) => {
-      if (fetchRiderBatches.rejected.match(result)) {
-        dispatch(loadSampleBatches());
-      }
-    });
+    dispatch(fetchRiderBatches());
+    // fetchRiderOrders.fulfilled syncs deliveryPhase/claimedOrderIds/pickedUpOrderIds
+    // from real API statuses — keeps Redux honest after every open
+    dispatch(fetchRiderOrders());
   }, [dispatch, user?.role]);
 
   const refreshBatches = () => {
-    dispatch(fetchRiderBatches()).then((result) => {
-      if (fetchRiderBatches.rejected.match(result)) {
-        dispatch(loadSampleBatches());
-      }
-    });
+    dispatch(fetchRiderBatches());
+    dispatch(fetchRiderOrders());
   };
+
+  // Derive for the stats row from API orders (ground truth when loaded)
+  const activeOrders = orders.filter((o) =>
+    ["RIDER_ASSIGNED", "PICKED_UP", "IN_DELIVERY"].includes(o.status)
+  );
+  // For the phase card use API orders when available, fall back to persisted Redux state
+  const apiLoaded = orders.length > 0;
+  const inDeliveryOrders = orders.filter((o) => o.status === "IN_DELIVERY");
+  const pickedUpOrders   = orders.filter((o) => o.status === "PICKED_UP");
+  const assignedOrders   = orders.filter((o) => o.status === "RIDER_ASSIGNED");
 
   const activeBatches = batches.filter((b) => ["OPEN", "IN_PROGRESS", "DISPATCHED"].includes(b.status));
   const upcomingBatches = batches.filter((b) => b.status === "CLOSED");
@@ -65,32 +72,26 @@ export default function RiderHomeScreen() {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning," : hour < 17 ? "Good afternoon," : "Good evening,";
 
-  // All claimed orders already picked up from a previous session
-  const allAlreadyPickedUp =
-    claimedOrderIds.length > 0 &&
-    claimedOrderIds.every((id) => pickedUpOrderIds.includes(id));
-
-  // Phase-aware CTA
+  // Phase card: uses API order statuses (ground truth) when loaded,
+  // falls back to persisted Redux state instantly on open so the rider
+  // always sees their active session — even before the API responds.
   const renderPhaseCard = () => {
-    if (deliveryPhase === "picking_up" && currentBatchId) {
-      // All orders were picked up in a previous session — skip pickup screen
-      if (allAlreadyPickedUp) {
+    // ── Fallback: API not yet loaded, use persisted Redux state ──
+    if (!apiLoaded) {
+      if (deliveryPhase === "delivering" || deliveryPhase === "arrived") {
         return (
           <View style={[styles.phaseCard, { borderColor: "#1C74E9" }]}>
             <View style={styles.phaseIconWrap}>
               <Ionicons name="bicycle" size={28} color="#1C74E9" />
             </View>
-            <Text style={styles.phaseTitle}>Ready to Deliver</Text>
+            <Text style={styles.phaseTitle}>Delivering Orders</Text>
             <Text style={styles.phaseSubtitle}>
-              All {claimedOrderIds.length} order(s) already picked up
+              {claimedOrderIds.length} pending · {deliveredOrderIds.length} delivered
             </Text>
             <TouchableOpacity
               style={[styles.phaseCta, { backgroundColor: "#1C74E9" }]}
               activeOpacity={0.85}
-              onPress={() => {
-                dispatch(setDeliveryPhase("delivering"));
-                router.push("/(rider)/active-delivery");
-              }}
+              onPress={() => router.push("/(rider)/active-delivery")}
             >
               <Ionicons name="navigate" size={18} color="white" style={{ marginRight: 6 }} />
               <Text style={styles.phaseCtaText}>Continue Delivery</Text>
@@ -98,34 +99,44 @@ export default function RiderHomeScreen() {
           </View>
         );
       }
-
-      return (
-        <View style={[styles.phaseCard, { borderColor: "#F59E0B" }]}>
-          <View style={styles.phaseIconWrap}>
-            <Ionicons name="bag-handle" size={28} color="#F59E0B" />
+      if (deliveryPhase === "picking_up" && currentBatchId) {
+        const allPickedUp = claimedOrderIds.every((id) => pickedUpOrderIds.includes(id));
+        return (
+          <View style={[styles.phaseCard, { borderColor: "#F59E0B" }]}>
+            <View style={styles.phaseIconWrap}>
+              <Ionicons name="bag-handle" size={28} color="#F59E0B" />
+            </View>
+            <Text style={styles.phaseTitle}>
+              {allPickedUp ? "Ready to Deliver" : "Picking Up Orders"}
+            </Text>
+            <Text style={styles.phaseSubtitle}>
+              {claimedOrderIds.length} order(s) assigned
+            </Text>
+            <TouchableOpacity
+              style={[styles.phaseCta, { backgroundColor: "#F59E0B" }]}
+              activeOpacity={0.85}
+              onPress={() =>
+                router.push({
+                  pathname: "/(rider)/pickup-batch",
+                  params: { batchId: currentBatchId },
+                })
+              }
+            >
+              <Ionicons name="arrow-forward" size={18} color="white" style={{ marginRight: 6 }} />
+              <Text style={styles.phaseCtaText}>
+                {allPickedUp ? "Continue to Dispatch" : "Continue Pickup"}
+              </Text>
+            </TouchableOpacity>
           </View>
-          <Text style={styles.phaseTitle}>Picking Up Orders</Text>
-          <Text style={styles.phaseSubtitle}>
-            {claimedOrderIds.length} order(s) claimed
-          </Text>
-          <TouchableOpacity
-            style={[styles.phaseCta, { backgroundColor: "#F59E0B" }]}
-            activeOpacity={0.85}
-            onPress={() =>
-              router.push({
-                pathname: "/(rider)/pickup-batch",
-                params: { batchId: currentBatchId },
-              })
-            }
-          >
-            <Ionicons name="arrow-forward" size={18} color="white" style={{ marginRight: 6 }} />
-            <Text style={styles.phaseCtaText}>Continue Pickup</Text>
-          </TouchableOpacity>
-        </View>
-      );
+        );
+      }
+      return null;
     }
 
-    if (deliveryPhase === "delivering") {
+    // ── API loaded: drive from real order statuses ──
+    // Orders are out for delivery (dispatched)
+    if (inDeliveryOrders.length > 0) {
+      const pending = inDeliveryOrders.length - deliveredOrderIds.length;
       return (
         <View style={[styles.phaseCard, { borderColor: "#1C74E9" }]}>
           <View style={styles.phaseIconWrap}>
@@ -133,7 +144,7 @@ export default function RiderHomeScreen() {
           </View>
           <Text style={styles.phaseTitle}>Delivering Orders</Text>
           <Text style={styles.phaseSubtitle}>
-            {claimedOrderIds.length} pending, {deliveredOrderIds.length} delivered
+            {pending} pending · {deliveredOrderIds.length} delivered
           </Text>
           <TouchableOpacity
             style={[styles.phaseCta, { backgroundColor: "#1C74E9" }]}
@@ -147,21 +158,57 @@ export default function RiderHomeScreen() {
       );
     }
 
-    if (deliveryPhase === "arrived") {
+    // Orders physically picked up but batch not dispatched yet
+    if (pickedUpOrders.length > 0) {
       return (
-        <View style={[styles.phaseCard, { borderColor: "#10B981" }]}>
+        <View style={[styles.phaseCard, { borderColor: "#1C74E9" }]}>
           <View style={styles.phaseIconWrap}>
-            <Ionicons name="flag" size={28} color="#10B981" />
+            <Ionicons name="bag-check" size={28} color="#1C74E9" />
           </View>
-          <Text style={styles.phaseTitle}>At Delivery Location</Text>
-          <Text style={styles.phaseSubtitle}>Verify and complete delivery</Text>
+          <Text style={styles.phaseTitle}>Ready to Deliver</Text>
+          <Text style={styles.phaseSubtitle}>
+            {pickedUpOrders.length} order(s) picked up
+          </Text>
           <TouchableOpacity
-            style={[styles.phaseCta, { backgroundColor: "#10B981" }]}
+            style={[styles.phaseCta, { backgroundColor: "#1C74E9" }]}
             activeOpacity={0.85}
-            onPress={() => router.push("/(rider)/active-delivery")}
+            onPress={() =>
+              router.push({
+                pathname: "/(rider)/pickup-batch",
+                params: { batchId: currentBatchId ?? "" },
+              })
+            }
           >
             <Ionicons name="arrow-forward" size={18} color="white" style={{ marginRight: 6 }} />
-            <Text style={styles.phaseCtaText}>Continue</Text>
+            <Text style={styles.phaseCtaText}>Continue to Dispatch</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    // Orders assigned to rider but not yet picked up
+    if (assignedOrders.length > 0) {
+      return (
+        <View style={[styles.phaseCard, { borderColor: "#F59E0B" }]}>
+          <View style={styles.phaseIconWrap}>
+            <Ionicons name="bag-handle" size={28} color="#F59E0B" />
+          </View>
+          <Text style={styles.phaseTitle}>Picking Up Orders</Text>
+          <Text style={styles.phaseSubtitle}>
+            {assignedOrders.length} order(s) assigned to you
+          </Text>
+          <TouchableOpacity
+            style={[styles.phaseCta, { backgroundColor: "#F59E0B" }]}
+            activeOpacity={0.85}
+            onPress={() =>
+              router.push({
+                pathname: "/(rider)/pickup-batch",
+                params: { batchId: currentBatchId ?? "" },
+              })
+            }
+          >
+            <Ionicons name="arrow-forward" size={18} color="white" style={{ marginRight: 6 }} />
+            <Text style={styles.phaseCtaText}>Continue Pickup</Text>
           </TouchableOpacity>
         </View>
       );
@@ -267,7 +314,7 @@ export default function RiderHomeScreen() {
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
             <Text style={styles.statLabel}>CLAIMED</Text>
-            <Text style={styles.statValue}>{claimedOrderIds.length}</Text>
+            <Text style={styles.statValue}>{activeOrders.length}</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statLabel}>DELIVERED</Text>
@@ -276,13 +323,13 @@ export default function RiderHomeScreen() {
           <View style={styles.statCard}>
             <Text style={styles.statLabel}>PHASE</Text>
             <Text style={[styles.statValue, { fontSize: 13 }]}>
-              {deliveryPhase === "idle"
-                ? "Idle"
-                : deliveryPhase === "picking_up"
-                ? "Pickup"
-                : deliveryPhase === "delivering"
+              {inDeliveryOrders.length > 0
                 ? "Delivery"
-                : "Arrived"}
+                : pickedUpOrders.length > 0
+                ? "Picked Up"
+                : assignedOrders.length > 0
+                ? "Pickup"
+                : "Idle"}
             </Text>
           </View>
         </View>

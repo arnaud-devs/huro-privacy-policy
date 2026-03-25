@@ -43,7 +43,7 @@ export default function BatchDetailScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { batchId } = useLocalSearchParams<{ batchId: string }>();
-  const { batchDetail, isLoadingBatchDetail, claimedOrderIds } = useAppSelector(
+  const { batchDetail, isLoadingBatchDetail, claimedOrderIds, deliveryPhase, pickedUpOrderIds, currentBatchId } = useAppSelector(
     (state) => state.rider
   );
 
@@ -60,10 +60,37 @@ export default function BatchDetailScreen() {
     }
   }, [batchId]);
 
+  // Smart resume: if rider returns to this screen with an active session,
+  // redirect straight to the step they haven't finished yet
+  useEffect(() => {
+    if (!batchId || claimedOrderIds.length === 0) return;
+    // Only apply to the same batch
+    if (currentBatchId && currentBatchId !== batchId) return;
+
+    if (deliveryPhase === "delivering" || deliveryPhase === "arrived") {
+      router.replace("/(rider)/active-delivery");
+      return;
+    }
+
+    const allPickedUp = claimedOrderIds.every((id) => pickedUpOrderIds.includes(id));
+
+    if (deliveryPhase === "picking_up") {
+      if (allPickedUp) {
+        dispatch(setDeliveryPhase("delivering"));
+        router.replace("/(rider)/active-delivery");
+      } else {
+        router.replace({
+          pathname: "/(rider)/pickup-batch",
+          params: { batchId },
+        } as any);
+      }
+    }
+  }, [deliveryPhase, claimedOrderIds.length]);
+
   const riderCount = batchDetail?.riders?.length ?? 1;
   const isSoloRider = riderCount <= 1;
 
-  // Auto-claim all orders when solo rider
+  // Auto-claim all orders when solo rider and set phase immediately
   useEffect(() => {
     if (isSoloRider && batchDetail?.orders && batchId) {
       const allOrderIds = batchDetail.orders.map((o) => o.id);
@@ -71,6 +98,7 @@ export default function BatchDetailScreen() {
       if (unclaimed.length > 0) {
         dispatch(claimOrders(allOrderIds));
         dispatch(setCurrentBatch(batchId));
+        dispatch(setDeliveryPhase("picking_up"));
       }
     }
   }, [isSoloRider, batchDetail?.orders, batchId]);
@@ -131,9 +159,10 @@ export default function BatchDetailScreen() {
       }
     }
 
-    // Also update local state for any that didn't go through API
+    // Update local state and set phase immediately so dashboard knows
     if (succeeded.length > 0) {
       dispatch(setCurrentBatch(batchId!));
+      dispatch(setDeliveryPhase("picking_up"));
     }
 
     setIsClaiming(false);

@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Linking,
@@ -14,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
+  fetchRiderOrderDetail,
   markOrderDeliveredLocal,
   resetDeliverySession,
   setDeliveryPhase,
@@ -23,8 +24,17 @@ import {
 export default function ActiveDeliveryScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { claimedOrderIds, deliveredOrderIds, currentBatchId, deliveryPhase } =
+  const { claimedOrderIds, deliveredOrderIds, currentBatchId, deliveryPhase, orderDetailsMap } =
     useAppSelector((state) => state.rider);
+
+  // Fetch details for any claimed order not yet cached
+  useEffect(() => {
+    for (const id of claimedOrderIds) {
+      if (!orderDetailsMap[id] && !SAMPLE_ORDER_DETAILS[id]) {
+        dispatch(fetchRiderOrderDetail(id));
+      }
+    }
+  }, [claimedOrderIds]);
 
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [hasArrived, setHasArrived] = useState(deliveryPhase === "arrived");
@@ -34,7 +44,7 @@ export default function ActiveDeliveryScreen() {
     return claimedOrderIds
       .filter((id) => !deliveredOrderIds.includes(id))
       .map((id) => {
-        const detail = SAMPLE_ORDER_DETAILS[id];
+        const detail = orderDetailsMap[id] ?? SAMPLE_ORDER_DETAILS[id];
         return {
           id,
           customerName: detail?.snapshotName ?? "Customer",
@@ -46,18 +56,18 @@ export default function ActiveDeliveryScreen() {
           pickupSignature: detail?.pickupSignature ?? null,
         };
       });
-  }, [claimedOrderIds, deliveredOrderIds]);
+  }, [claimedOrderIds, deliveredOrderIds, orderDetailsMap]);
 
   const deliveredOrders = useMemo(() => {
     return deliveredOrderIds.map((id) => {
-      const detail = SAMPLE_ORDER_DETAILS[id];
+      const detail = orderDetailsMap[id] ?? SAMPLE_ORDER_DETAILS[id];
       return {
         id,
         customerName: detail?.snapshotName ?? "Customer",
         address: detail?.customAddress ?? detail?.snapshotZoneName ?? "Unknown",
       };
     });
-  }, [deliveredOrderIds]);
+  }, [deliveredOrderIds, orderDetailsMap]);
 
   const totalOrders = claimedOrderIds.length;
   const deliveredCount = deliveredOrderIds.length;
@@ -194,7 +204,6 @@ export default function ActiveDeliveryScreen() {
                 ORDERS TO DELIVER ({pendingOrders.length})
               </Text>
             </View>
-
             {pendingOrders.map((order, index) => (
               <View key={order.id} style={styles.orderCard}>
                 <View style={styles.orderHeader}>

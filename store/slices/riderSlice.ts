@@ -124,6 +124,8 @@ interface RiderState {
   deliveredOrderIds: string[];
   pickedUpOrderIds: string[];
   isDispatching: boolean;
+  // Cache of fetched order details keyed by orderId
+  orderDetailsMap: Record<string, RiderOrderDetail>;
 }
 
 const initialState: RiderState = {
@@ -153,6 +155,7 @@ const initialState: RiderState = {
   deliveredOrderIds: [],
   pickedUpOrderIds: [],
   isDispatching: false,
+  orderDetailsMap: {},
 };
 
 export const SAMPLE_BATCH_DETAIL: BatchDetail = {
@@ -687,6 +690,8 @@ const riderSlice = createSlice({
       .addCase(fetchRiderOrderDetail.fulfilled, (state, action) => {
         state.isLoadingOrderDetail = false;
         state.orderDetail = action.payload;
+        // Cache in map so active-delivery can look up by id
+        state.orderDetailsMap[action.payload.id] = action.payload;
       })
       .addCase(fetchRiderOrderDetail.rejected, (state, action) => {
         state.isLoadingOrderDetail = false;
@@ -699,6 +704,36 @@ const riderSlice = createSlice({
       .addCase(fetchRiderOrders.fulfilled, (state, action) => {
         state.isFetchingOrders = false;
         state.orders = action.payload;
+
+        // Sync delivery session from real API statuses so Redux always reflects truth
+        const ACTIVE_STATUSES = ['RIDER_ASSIGNED', 'PICKED_UP', 'IN_DELIVERY'];
+        const activeOrders = action.payload.filter((o) => ACTIVE_STATUSES.includes(o.status));
+
+        if (activeOrders.length > 0) {
+          // Overwrite claimed ids from API
+          state.claimedOrderIds = activeOrders.map((o) => o.id);
+
+          // Orders already picked up or in delivery
+          state.pickedUpOrderIds = activeOrders
+            .filter((o) => o.status === 'PICKED_UP' || o.status === 'IN_DELIVERY')
+            .map((o) => o.id);
+
+          // Phase from most-advanced status
+          const hasInDelivery = activeOrders.some((o) => o.status === 'IN_DELIVERY');
+          const hasPickedUp   = activeOrders.some((o) => o.status === 'PICKED_UP');
+          if (hasInDelivery) {
+            state.deliveryPhase = 'delivering';
+          } else if (hasPickedUp) {
+            state.deliveryPhase = 'picking_up';
+          } else {
+            state.deliveryPhase = 'picking_up'; // RIDER_ASSIGNED → still in pickup
+          }
+        } else if (state.deliveryPhase !== 'arrived') {
+          // No active orders from API → clear stale local session
+          state.deliveryPhase = 'idle';
+          state.claimedOrderIds = [];
+          state.pickedUpOrderIds = [];
+        }
       })
       .addCase(fetchRiderOrders.rejected, (state, action) => {
         state.isFetchingOrders = false;
