@@ -1,63 +1,18 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useMemo } from "react";
-import {
-  Linking,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { useRouter } from "expo-router";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useAppDispatch } from "@/store/hooks";
-import {
-  setDeliveryPhase,
-  SAMPLE_ORDER_DETAILS,
-} from "@/store/slices/riderSlice";
+import { ArrivalBanner } from "@/components/rider/arrived/ArrivalBanner";
+import { CustomerInfoCard } from "@/components/rider/arrived/CustomerInfoCard";
+import { OrderSummaryCard } from "@/components/rider/arrived/OrderSummaryCard";
+import { VerifyDeliveryCard } from "@/components/rider/arrived/VerifyDeliveryCard";
+import { useArrived } from "@/hooks/useArrived";
 
 export default function ArrivedScreen() {
   const router = useRouter();
-  const dispatch = useAppDispatch();
-  const { orderId } = useLocalSearchParams<{ orderId: string }>();
-
-  const order = useMemo(() => {
-    if (!orderId) return null;
-    return SAMPLE_ORDER_DETAILS[orderId] ?? null;
-  }, [orderId]);
-
-  const handleCall = () => {
-    if (order?.snapshotPhone) {
-      Linking.openURL(`tel:${order.snapshotPhone.replace(/\s/g, "")}`);
-    }
-  };
-
-  const handleVerifyDelivery = () => {
-    router.push({
-      pathname: "/(rider)/scan-qr",
-      params: { orderId: orderId! },
-    });
-  };
-
-  const handleManualCode = () => {
-    router.push({
-      pathname: "/(rider)/manual-code-entry",
-      params: { orderId: orderId! },
-    });
-  };
-
-  const handleGoBack = () => {
-    dispatch(setDeliveryPhase("delivering"));
-    router.back();
-  };
-
-  const handleReportIssue = () => {
-    router.push({
-      pathname: "/(rider)/delivery-issues",
-      params: { orderId: orderId! },
-    });
-  };
+  const { order, handleCall, handleVerifyDelivery, handleManualCode, handleGoBack, handleReportIssue } =
+    useArrived();
 
   if (!order) {
     return (
@@ -87,127 +42,27 @@ export default function ArrivedScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Arrival Banner */}
-        <View style={styles.bannerCard}>
-          <View style={styles.bannerIcon}>
-            <Ionicons name="flag" size={32} color="#1C74E9" />
-          </View>
-          <Text style={styles.bannerTitle}>You've Arrived!</Text>
-          <Text style={styles.bannerSubtitle}>
-            Notify the customer and verify delivery
-          </Text>
-        </View>
+        <ArrivalBanner />
 
-        {/* Customer Info */}
-        <View style={styles.infoCard}>
-          <Text style={styles.infoCardTitle}>Customer Details</Text>
+        <CustomerInfoCard
+          name={order.snapshotName}
+          phone={order.snapshotPhone}
+          address={order.customAddress ?? order.snapshotZoneName}
+          zone={order.snapshotZoneName}
+          onCall={handleCall}
+        />
 
-          <View style={styles.infoRow}>
-            <Ionicons name="person-outline" size={18} color="#64748B" />
-            <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Name</Text>
-              <Text style={styles.infoValue}>{order.snapshotName}</Text>
-            </View>
-          </View>
+        <OrderSummaryCard
+          orderId={order.id}
+          items={order.orderItems ?? []}
+          total={order.payableAmount}
+        />
 
-          <View style={styles.infoRow}>
-            <Ionicons name="call-outline" size={18} color="#64748B" />
-            <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Phone</Text>
-              <Text style={styles.infoValue}>{order.snapshotPhone}</Text>
-            </View>
-            <TouchableOpacity style={styles.callBtn} onPress={handleCall}>
-              <Ionicons name="call" size={16} color="white" />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Ionicons name="location-outline" size={18} color="#64748B" />
-            <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Location</Text>
-              <Text style={styles.infoValue}>
-                {order.customAddress ?? order.snapshotZoneName}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Ionicons name="map-outline" size={18} color="#64748B" />
-            <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Zone</Text>
-              <Text style={styles.infoValue}>{order.snapshotZoneName}</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Order Summary */}
-        <View style={styles.infoCard}>
-          <Text style={styles.infoCardTitle}>Order Summary</Text>
-          <Text style={styles.orderIdLabel}>
-            #{order.id.slice(0, 8).toUpperCase()}
-          </Text>
-
-          {(order.orderItems ?? []).map((item) => (
-            <View key={item.id} style={styles.orderItemRow}>
-              <Text style={styles.orderItemName}>{item.productName}</Text>
-              <Text style={styles.orderItemQty}>x{item.quantity}</Text>
-            </View>
-          ))}
-
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Total</Text>
-            <Text style={styles.totalValue}>
-              {order.payableAmount.toLocaleString()} NGN
-            </Text>
-          </View>
-        </View>
-
-        {/* Verification Actions */}
-        <View style={styles.actionsCard}>
-          <Text style={styles.actionsTitle}>Verify Delivery</Text>
-          <Text style={styles.actionsSubtitle}>
-            Ask the customer to show their QR code or provide the delivery code
-          </Text>
-
-          <TouchableOpacity
-            style={styles.scanBtn}
-            activeOpacity={0.85}
-            onPress={handleVerifyDelivery}
-          >
-            <Ionicons
-              name="qr-code-outline"
-              size={22}
-              color="white"
-              style={{ marginRight: 10 }}
-            />
-            <Text style={styles.scanBtnText}>Scan QR Code</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.manualBtn}
-            activeOpacity={0.85}
-            onPress={handleManualCode}
-          >
-            <Ionicons
-              name="keypad-outline"
-              size={22}
-              color="#1C74E9"
-              style={{ marginRight: 10 }}
-            />
-            <Text style={styles.manualBtnText}>Enter Code Manually</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Report Issue */}
-        <TouchableOpacity
-          style={styles.issueBtn}
-          activeOpacity={0.7}
-          onPress={handleReportIssue}
-        >
-          <Ionicons name="warning-outline" size={18} color="#F59E0B" />
-          <Text style={styles.issueBtnText}>Report an Issue</Text>
-          <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
-        </TouchableOpacity>
+        <VerifyDeliveryCard
+          onScanQR={handleVerifyDelivery}
+          onManualCode={handleManualCode}
+          onReportIssue={handleReportIssue}
+        />
       </ScrollView>
     </SafeAreaView>
   );
@@ -218,8 +73,6 @@ const styles = StyleSheet.create({
   centerWrap: { flex: 1, justifyContent: "center", alignItems: "center" },
   errorText: { fontSize: 16, color: "#64748B", fontWeight: "600" },
   linkText: { fontSize: 14, color: "#1C74E9", fontWeight: "600", marginTop: 12 },
-
-  // Header
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -238,168 +91,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerTitle: { fontSize: 16, fontWeight: "800", color: "#0F172A" },
-
   scrollContent: { padding: 16, paddingBottom: 40 },
-
-  // Banner
-  bannerCard: {
-    backgroundColor: "#EFF6FF",
-    borderRadius: 16,
-    padding: 24,
-    alignItems: "center",
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#BFDBFE",
-  },
-  bannerIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: "white",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 12,
-    shadowColor: "#1C74E9",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  bannerTitle: { fontSize: 20, fontWeight: "800", color: "#0F172A" },
-  bannerSubtitle: {
-    fontSize: 14,
-    color: "#64748B",
-    marginTop: 4,
-    textAlign: "center",
-  },
-
-  // Info Card
-  infoCard: {
-    backgroundColor: "white",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  infoCardTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#0F172A",
-    marginBottom: 14,
-  },
-  infoRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F8FAFC",
-  },
-  infoContent: { flex: 1 },
-  infoLabel: { fontSize: 11, color: "#94A3B8", fontWeight: "600" },
-  infoValue: { fontSize: 14, color: "#0F172A", fontWeight: "600", marginTop: 2 },
-  callBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#10B981",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  // Order summary
-  orderIdLabel: {
-    fontSize: 12,
-    color: "#94A3B8",
-    fontWeight: "600",
-    marginBottom: 12,
-  },
-  orderItemRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F8FAFC",
-  },
-  orderItemName: { fontSize: 14, color: "#334155", fontWeight: "500" },
-  orderItemQty: { fontSize: 14, color: "#64748B", fontWeight: "600" },
-  totalRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingTop: 12,
-    marginTop: 4,
-    borderTopWidth: 1,
-    borderTopColor: "#E2E8F0",
-  },
-  totalLabel: { fontSize: 14, color: "#0F172A", fontWeight: "700" },
-  totalValue: { fontSize: 16, color: "#1C74E9", fontWeight: "800" },
-
-  // Actions
-  actionsCard: {
-    backgroundColor: "white",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  actionsTitle: { fontSize: 14, fontWeight: "700", color: "#0F172A" },
-  actionsSubtitle: {
-    fontSize: 13,
-    color: "#64748B",
-    marginTop: 4,
-    marginBottom: 16,
-    lineHeight: 18,
-  },
-  scanBtn: {
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: "#1C74E9",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 10,
-    shadowColor: "#1C74E9",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  scanBtnText: { fontSize: 15, fontWeight: "700", color: "white" },
-  manualBtn: {
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: "#EFF6FF",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#BFDBFE",
-  },
-  manualBtnText: { fontSize: 15, fontWeight: "700", color: "#1C74E9" },
-
-  // Issue button
-  issueBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFFBEB",
-    borderRadius: 12,
-    padding: 14,
-    gap: 10,
-    borderWidth: 1,
-    borderColor: "#FDE68A",
-  },
-  issueBtnText: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#92400E",
-  },
 });
