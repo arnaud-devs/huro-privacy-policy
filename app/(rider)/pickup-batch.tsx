@@ -17,6 +17,7 @@ import {
   dispatchBatch,
   fetchBatchDetail,
   loadSampleBatchDetail,
+  markAllPickedUp,
   pickupOrder,
   setDeliveryPhase,
   SAMPLE_ORDER_DETAILS,
@@ -64,6 +65,7 @@ export default function PickupBatchScreen() {
 
     const mapped: PickupOrder[] = claimed.map((order) => {
       const detail = SAMPLE_ORDER_DETAILS[order.id];
+      const alreadyDone = pickedUpOrderIds.includes(order.id);
       return {
         orderId: order.id,
         customerName: detail?.snapshotName ?? `Order #${order.id.slice(0, 6).toUpperCase()}`,
@@ -71,23 +73,26 @@ export default function PickupBatchScreen() {
           id: item.id,
           name: item.productName,
           quantity: item.quantity,
-          status: "not-collected" as ItemStatus,
+          // Pre-mark as collected if already picked up in a previous session
+          status: alreadyDone ? ("collected" as ItemStatus) : ("not-collected" as ItemStatus),
         })),
       };
     });
 
     setPickupOrders(mapped);
-  }, [batchDetail, claimedOrderIds]);
+  }, [batchDetail, claimedOrderIds, pickedUpOrderIds]);
 
-  const totalItems = pickupOrders.reduce(
-    (sum, o) => sum + o.items.length,
-    0
-  );
+  const totalItems = pickupOrders.reduce((sum, o) => sum + o.items.length, 0);
   const collectedItems = pickupOrders.reduce(
     (sum, o) => sum + o.items.filter((i) => i.status === "collected").length,
     0
   );
   const allCollected = totalItems > 0 && collectedItems === totalItems;
+
+  // All orders were already picked up from a previous session — skip re-confirmation
+  const allAlreadyPickedUp =
+    pickupOrders.length > 0 &&
+    pickupOrders.every((o) => pickedUpOrderIds.includes(o.orderId));
 
   const toggleItem = (orderId: string, itemId: string) => {
     setPickupOrders((prev) =>
@@ -223,9 +228,23 @@ export default function PickupBatchScreen() {
           <Text style={styles.progressLabel}>
             {collectedItems} / {totalItems} items collected
           </Text>
-          <Text style={styles.progressPercent}>
-            {totalItems > 0 ? Math.round((collectedItems / totalItems) * 100) : 0}%
-          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            {!allAlreadyPickedUp && pickupOrders.length > 0 && (
+              <TouchableOpacity
+                style={styles.markAllBtn}
+                onPress={() => {
+                  const ids = pickupOrders.map((o) => o.orderId);
+                  dispatch(markAllPickedUp(ids));
+                }}
+              >
+                <Ionicons name="checkmark-done" size={14} color="#1C74E9" />
+                <Text style={styles.markAllText}>Mark All</Text>
+              </TouchableOpacity>
+            )}
+            <Text style={styles.progressPercent}>
+              {totalItems > 0 ? Math.round((collectedItems / totalItems) * 100) : 0}%
+            </Text>
+          </View>
         </View>
         <View style={styles.progressTrack}>
           <View
@@ -259,6 +278,7 @@ export default function PickupBatchScreen() {
               (i) => i.status === "collected"
             ).length;
             const orderDone = orderCollected === order.items.length;
+            const isLocked = pickedUpOrderIds.includes(order.orderId);
 
             return (
               <View
@@ -285,7 +305,9 @@ export default function PickupBatchScreen() {
                     <View
                       style={[
                         styles.orderStatusBadge,
-                        orderDone
+                        isLocked
+                          ? { backgroundColor: "#DCFCE7" }
+                          : orderDone
                           ? { backgroundColor: "#DCFCE7" }
                           : { backgroundColor: "#FEF3C7" },
                       ]}
@@ -293,24 +315,34 @@ export default function PickupBatchScreen() {
                       <Text
                         style={[
                           styles.orderStatusText,
-                          orderDone
+                          isLocked || orderDone
                             ? { color: "#10B981" }
                             : { color: "#F59E0B" },
                         ]}
                       >
-                        {orderDone ? "READY" : `${orderCollected}/${order.items.length}`}
+                        {isLocked ? "PICKED UP" : orderDone ? "READY" : `${orderCollected}/${order.items.length}`}
                       </Text>
                     </View>
                     <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
                   </View>
                 </TouchableOpacity>
 
+                {/* Already picked up banner */}
+                {isLocked && (
+                  <View style={styles.alreadyPickedBanner}>
+                    <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+                    <Text style={styles.alreadyPickedText}>
+                      Already picked up — cannot be modified
+                    </Text>
+                  </View>
+                )}
+
                 {order.items.map((item, idx) => (
                   <TouchableOpacity
                     key={`${order.orderId}-${item.id || idx}`}
                     style={styles.itemRow}
-                    activeOpacity={0.6}
-                    onPress={() => toggleItem(order.orderId, item.id)}
+                    activeOpacity={isLocked ? 1 : 0.6}
+                    onPress={() => !isLocked && toggleItem(order.orderId, item.id)}
                   >
                     {statusIcon(item.status)}
                     <View style={styles.itemInfo}>
@@ -325,13 +357,15 @@ export default function PickupBatchScreen() {
                       </Text>
                       <Text style={styles.itemQty}>Qty: {item.quantity}</Text>
                     </View>
-                    <Text style={styles.tapHint}>
-                      {item.status === "not-collected"
-                        ? "Tap to collect"
-                        : item.status === "collected"
-                        ? "Tap: out of stock"
-                        : "Tap: reset"}
-                    </Text>
+                    {!isLocked && (
+                      <Text style={styles.tapHint}>
+                        {item.status === "not-collected"
+                          ? "Tap to collect"
+                          : item.status === "collected"
+                          ? "Tap: out of stock"
+                          : "Tap: reset"}
+                      </Text>
+                    )}
                   </TouchableOpacity>
                 ))}
               </View>
@@ -343,33 +377,47 @@ export default function PickupBatchScreen() {
       {/* Bottom Button */}
       {pickupOrders.length > 0 && (
         <View style={styles.bottomBar}>
-          <TouchableOpacity
-            style={[
-              styles.deliveryBtn,
-              (!allCollected || isPickingUp) && styles.deliveryBtnDisabled,
-            ]}
-            activeOpacity={0.85}
-            onPress={handleStartDelivery}
-            disabled={isPickingUp}
-          >
-            {isPickingUp ? (
-              <ActivityIndicator color="white" style={{ marginRight: 8 }} />
-            ) : (
-              <Ionicons
-                name="bicycle-outline"
-                size={20}
-                color="white"
-                style={{ marginRight: 8 }}
-              />
-            )}
-            <Text style={styles.deliveryBtnText}>
-              {isPickingUp
-                ? "Marking as Picked Up..."
-                : allCollected
-                ? "Start Delivery"
-                : "Collect All Items First"}
-            </Text>
-          </TouchableOpacity>
+          {allAlreadyPickedUp ? (
+            <TouchableOpacity
+              style={styles.deliveryBtn}
+              activeOpacity={0.85}
+              onPress={() => {
+                dispatch(setDeliveryPhase("delivering"));
+                router.push("/(rider)/active-delivery");
+              }}
+            >
+              <Ionicons name="navigate" size={20} color="white" style={{ marginRight: 8 }} />
+              <Text style={styles.deliveryBtnText}>Continue to Delivery</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[
+                styles.deliveryBtn,
+                (!allCollected || isPickingUp) && styles.deliveryBtnDisabled,
+              ]}
+              activeOpacity={0.85}
+              onPress={handleStartDelivery}
+              disabled={isPickingUp}
+            >
+              {isPickingUp ? (
+                <ActivityIndicator color="white" style={{ marginRight: 8 }} />
+              ) : (
+                <Ionicons
+                  name="bicycle-outline"
+                  size={20}
+                  color="white"
+                  style={{ marginRight: 8 }}
+                />
+              )}
+              <Text style={styles.deliveryBtnText}>
+                {isPickingUp
+                  ? "Marking as Picked Up..."
+                  : allCollected
+                  ? "Start Delivery"
+                  : "Collect All Items First"}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
     </SafeAreaView>
@@ -519,4 +567,31 @@ const styles = StyleSheet.create({
     shadowColor: "#94A3B8",
   },
   deliveryBtnText: { fontSize: 15, fontWeight: "700", color: "white" },
+
+  alreadyPickedBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F0FDF4",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 10,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "#BBF7D0",
+  },
+  alreadyPickedText: { fontSize: 12, color: "#166534", fontWeight: "600", flex: 1 },
+
+  markAllBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#EFF6FF",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+  },
+  markAllText: { fontSize: 12, fontWeight: "700", color: "#1C74E9" },
 });

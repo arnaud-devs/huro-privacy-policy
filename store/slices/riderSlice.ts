@@ -155,28 +155,6 @@ const initialState: RiderState = {
   isDispatching: false,
 };
 
-// ─── Sample data for development (remove when APIs are ready) ───
-export const SAMPLE_BATCHES: RiderBatch[] = [
-  {
-    id: 'batch-001',
-    slotLabel: 'Morning Slot',
-    scheduledAt: new Date(Date.now() + 45 * 60000).toISOString(),
-    status: 'IN_PROGRESS',
-    currentOrders: 6,
-    maxOrders: 8,
-    deliveryZone: { name: 'Engineering Campus' },
-  },
-  {
-    id: 'batch-002',
-    slotLabel: 'Afternoon Slot',
-    scheduledAt: new Date(Date.now() + 3 * 3600000).toISOString(),
-    status: 'CLOSED',
-    currentOrders: 4,
-    maxOrders: 6,
-    deliveryZone: { name: 'Admin Block' },
-  },
-];
-
 export const SAMPLE_BATCH_DETAIL: BatchDetail = {
   id: 'batch-001',
   slotLabel: 'Morning Slot',
@@ -677,6 +655,13 @@ const riderSlice = createSlice({
       state.deliveredOrderIds = [...state.deliveredOrderIds, action.payload];
       state.claimedOrderIds = state.claimedOrderIds.filter(id => id !== action.payload);
     },
+    markAllPickedUp: (state, action: { payload: string[] }) => {
+      for (const id of action.payload) {
+        if (!state.pickedUpOrderIds.includes(id)) {
+          state.pickedUpOrderIds.push(id);
+        }
+      }
+    },
     resetDeliverySession: (state) => {
       state.deliveryPhase = 'idle';
       state.claimedOrderIds = [];
@@ -685,10 +670,6 @@ const riderSlice = createSlice({
       state.pickedUpOrderIds = [];
     },
     // Load sample data for development
-    loadSampleBatches: (state) => {
-      state.batches = SAMPLE_BATCHES;
-      state.isFetchingBatches = false;
-    },
     loadSampleBatchDetail: (state, action: { payload: string }) => {
       if (action.payload === SAMPLE_BATCH_DETAIL.id) {
         state.batchDetail = SAMPLE_BATCH_DETAIL;
@@ -819,8 +800,8 @@ export const {
   setCurrentBatch,
   setDeliveryPhase,
   markOrderDeliveredLocal,
+  markAllPickedUp,
   resetDeliverySession,
-  loadSampleBatches,
   loadSampleBatchDetail,
 } = riderSlice.actions;
 export default riderSlice.reducer;
