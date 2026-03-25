@@ -15,7 +15,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   claimBatchOrder,
-  claimOrders,
   fetchBatchDetail,
   loadSampleBatchDetail,
   setCurrentBatch,
@@ -43,7 +42,7 @@ export default function BatchDetailScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { batchId } = useLocalSearchParams<{ batchId: string }>();
-  const { batchDetail, isLoadingBatchDetail, claimedOrderIds, deliveryPhase, pickedUpOrderIds, currentBatchId } = useAppSelector(
+  const { batchDetail, isLoadingBatchDetail, claimedOrderIds } = useAppSelector(
     (state) => state.rider
   );
 
@@ -60,48 +59,37 @@ export default function BatchDetailScreen() {
     }
   }, [batchId]);
 
-  // Smart resume: if rider returns to this screen with an active session,
-  // redirect straight to the step they haven't finished yet
+  // Smart resume: after batch detail loads, check actual order statuses from the
+  // server and redirect to the correct step — no dependency on Redux phase.
   useEffect(() => {
-    if (!batchId || claimedOrderIds.length === 0) return;
-    // Only apply to the same batch
-    if (currentBatchId && currentBatchId !== batchId) return;
+    if (!batchDetail || !batchId) return;
 
-    if (deliveryPhase === "delivering" || deliveryPhase === "arrived") {
+    const orders = batchDetail.orders ?? [];
+
+    // IN_DELIVERY → batch already dispatched, go straight to active delivery
+    if (orders.some((o) => o.status === "IN_DELIVERY")) {
       router.replace("/(rider)/active-delivery");
       return;
     }
 
-    const allPickedUp = claimedOrderIds.every((id) => pickedUpOrderIds.includes(id));
-
-    if (deliveryPhase === "picking_up") {
-      if (allPickedUp) {
-        dispatch(setDeliveryPhase("delivering"));
-        router.replace("/(rider)/active-delivery");
-      } else {
-        router.replace({
-          pathname: "/(rider)/pickup-batch",
-          params: { batchId },
-        } as any);
-      }
+    // PICKED_UP or RIDER_ASSIGNED → rider has work in progress, go to pickup screen
+    if (
+      orders.some((o) => o.status === "PICKED_UP") ||
+      orders.some((o) => o.status === "RIDER_ASSIGNED")
+    ) {
+      router.replace({
+        pathname: "/(rider)/pickup-batch",
+        params: { batchId },
+      } as any);
     }
-  }, [deliveryPhase, claimedOrderIds.length]);
+    // PAID orders only → show claim UI (fall through, no redirect)
+  }, [batchDetail?.id]);
 
   const riderCount = batchDetail?.riders?.length ?? 1;
   const isSoloRider = riderCount <= 1;
 
-  // Auto-claim all orders when solo rider and set phase immediately
-  useEffect(() => {
-    if (isSoloRider && batchDetail?.orders && batchId) {
-      const allOrderIds = batchDetail.orders.map((o) => o.id);
-      const unclaimed = allOrderIds.filter((id) => !claimedOrderIds.includes(id));
-      if (unclaimed.length > 0) {
-        dispatch(claimOrders(allOrderIds));
-        dispatch(setCurrentBatch(batchId));
-        dispatch(setDeliveryPhase("picking_up"));
-      }
-    }
-  }, [isSoloRider, batchDetail?.orders, batchId]);
+  // Solo rider: server auto-assigns on payment → orders arrive as RIDER_ASSIGNED.
+  // No client-side claiming needed; the status-based redirect above handles routing.
 
   // Categorize orders
   const { availableOrders, takenOrders, myClaimedOrders } = useMemo(() => {

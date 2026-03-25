@@ -747,6 +747,27 @@ const riderSlice = createSlice({
       .addCase(fetchBatchDetail.fulfilled, (state, action) => {
         state.isLoadingBatchDetail = false;
         state.batchDetail = action.payload;
+
+        // Sync session state from batch order statuses (ground truth from server)
+        const orders = action.payload.orders ?? [];
+        const RIDER_ACTIVE = ['RIDER_ASSIGNED', 'PICKED_UP', 'IN_DELIVERY'];
+        const myOrders = orders.filter((o) => RIDER_ACTIVE.includes(o.status));
+
+        if (myOrders.length > 0) {
+          state.currentBatchId = action.payload.id;
+          state.claimedOrderIds = myOrders.map((o) => o.id);
+          state.pickedUpOrderIds = myOrders
+            .filter((o) => o.status === 'PICKED_UP' || o.status === 'IN_DELIVERY')
+            .map((o) => o.id);
+
+          const hasInDelivery = myOrders.some((o) => o.status === 'IN_DELIVERY');
+          const hasPickedUp   = myOrders.some((o) => o.status === 'PICKED_UP');
+          if (hasInDelivery) {
+            state.deliveryPhase = 'delivering';
+          } else if (hasPickedUp || myOrders.some((o) => o.status === 'RIDER_ASSIGNED')) {
+            state.deliveryPhase = 'picking_up';
+          }
+        }
       })
       .addCase(fetchBatchDetail.rejected, (state, action) => {
         state.isLoadingBatchDetail = false;
