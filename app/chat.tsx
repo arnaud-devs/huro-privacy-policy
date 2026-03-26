@@ -1,25 +1,29 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
   ScrollView,
+  StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
-  KeyboardAvoidingView,
-  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import ChatBubble, { Message } from "@/components/chat/ChatBubble";
 import ChatInputBar from "@/components/chat/ChatInputBar";
+import ChatProductCard from "@/components/chat/ChatProductCard";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchMessages, clearMessages, appendMessage, sendMessage, ApiMessage } from "@/store/slices/messagingSlice";
+import { appendMessage, clearMessages, fetchMessages, sendMessage, respondToOffer, markConversationRead, ApiMessage } from "@/store/slices/messagingSlice";
 
 function formatTime(dateStr: string) {
-  const date = new Date(dateStr);
-  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return new Date(dateStr).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
 function toMessage(msg: ApiMessage, currentUserId: string, otherAvatarUrl?: string): Message {
@@ -31,6 +35,9 @@ function toMessage(msg: ApiMessage, currentUserId: string, otherAvatarUrl?: stri
     isMe,
     avatar: isMe ? undefined : (msg.sender?.avatarUrl ?? otherAvatarUrl),
     read: msg.isRead,
+    isOffer: msg.isOffer,
+    offerAmount: msg.offerAmount,
+    offerAction: msg.offerAction,
   };
 }
 
@@ -39,6 +46,8 @@ export default function ChatScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const scrollRef = useRef<ScrollView>(null);
+  const [offerModalVisible, setOfferModalVisible] = useState(false);
+  const [offerAmount, setOfferAmount] = useState("");
 
   const currentUserId = useAppSelector((s) => (s.user as any).user?.id ?? "");
   const { messages, isFetchingMessages, messagesError } = useAppSelector((s) => s.messaging);
@@ -49,6 +58,7 @@ export default function ChatScreen() {
   useEffect(() => {
     if (conversationId) {
       dispatch(fetchMessages({ conversationId, limit: 30 }));
+      dispatch(markConversationRead({ conversationId }));
     }
     return () => { dispatch(clearMessages()); };
   }, [conversationId, dispatch]);
@@ -59,8 +69,58 @@ export default function ChatScreen() {
     }
   }, [messages.length]);
 
+  function handleSend(text: string) {
+    if (!conversationId) return;
+    const tempId = `temp-${Date.now()}`;
+    dispatch(appendMessage({
+      id: tempId,
+      content: text,
+      senderId: currentUserId,
+      createdAt: new Date().toISOString(),
+      isRead: false,
+    }));
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
+    dispatch(sendMessage({ conversationId, content: text, tempId }));
+  }
+
+  async function handleRespondToOffer(messageId: string, action: 'ACCEPTED' | 'REJECTED') {
+    if (!conversationId) return;
+    const result = await dispatch(respondToOffer({ conversationId, messageId, action }));
+    if (respondToOffer.rejected.match(result)) {
+      console.log('respondToOffer error:', result.payload);
+      Alert.alert('Error', result.payload as string || 'Failed to respond to offer');
+    } else {
+      console.log('respondToOffer success:', result.payload);
+    }
+  }
+
+  function handleSendOffer() {
+    const amount = parseFloat(offerAmount);
+    if (!offerAmount || isNaN(amount) || amount <= 0) {
+      Alert.alert("Invalid amount", "Please enter a valid offer amount.");
+      return;
+    }
+    if (!conversationId) return;
+    const tempId = `temp-offer-${Date.now()}`;
+    const content = `I'd like to offer ${amount.toLocaleString()} RWF`;
+    dispatch(appendMessage({
+      id: tempId,
+      content,
+      senderId: currentUserId,
+      createdAt: new Date().toISOString(),
+      isRead: false,
+      isOffer: true,
+      offerAmount: amount,
+      offerAction: 'PENDING',
+    }));
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
+    dispatch(sendMessage({ conversationId, content, tempId, isOffer: true, offerAmount: amount }));
+    setOfferAmount("");
+    setOfferModalVisible(false);
+  }
+
   const otherName = conversation?.otherParticipant?.fullName ?? "Chat";
-  const listingTitle = conversation?.listing?.title;
+  const listing = conversation?.listing;
 
   return (
     <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
@@ -71,8 +131,8 @@ export default function ChatScreen() {
         </TouchableOpacity>
         <View className="flex-1 items-center">
           <Text className="text-lg font-bold text-slate-900">{otherName}</Text>
-          {listingTitle && (
-            <Text className="text-xs text-slate-400" numberOfLines={1}>{listingTitle}</Text>
+          {listing?.title && (
+            <Text className="text-xs text-slate-400" numberOfLines={1}>{listing.title}</Text>
           )}
         </View>
         <TouchableOpacity>
@@ -104,38 +164,110 @@ export default function ChatScreen() {
             ref={scrollRef}
             className="flex-1"
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingTop: 12, paddingBottom: 8 }}
+            contentContainerStyle={{ paddingBottom: 8 }}
           >
+            {/* Product Card */}
+            {listing && (
+              <ChatProductCard
+                title={listing.title ?? "Listing"}
+                price=""
+                image={listing.images?.[0] ?? ""}
+                onViewListing={() => router.push({ pathname: "/product-details", params: { id: listing.id } })}
+                onMakeOffer={() => setOfferModalVisible(true)}
+              />
+            )}
+
+            {/* Messages */}
             {messages.length === 0 ? (
               <View className="items-center mt-16 px-8">
                 <Ionicons name="chatbubbles-outline" size={48} color="#cbd5e1" />
-                <Text className="text-slate-400 text-sm mt-3 text-center">
-                  No messages yet. Say hello!
-                </Text>
+                <Text className="text-slate-400 text-sm mt-3 text-center">No messages yet. Say hello!</Text>
               </View>
             ) : (
               messages.map((msg) => (
-                <ChatBubble key={msg.id} message={toMessage(msg, currentUserId, conversation?.otherParticipant?.avatarUrl)} />
+                <ChatBubble
+                  key={msg.id}
+                  message={toMessage(msg, currentUserId, conversation?.otherParticipant?.avatarUrl)}
+                  onAcceptOffer={(id) => handleRespondToOffer(id, 'ACCEPTED')}
+                  onRejectOffer={(id) => handleRespondToOffer(id, 'REJECTED')}
+                />
               ))
             )}
             <View className="h-4" />
           </ScrollView>
         )}
 
-        <ChatInputBar onSend={(text) => {
-          if (!conversationId) return;
-          const tempId = `temp-${Date.now()}`;
-          dispatch(appendMessage({
-            id: tempId,
-            content: text,
-            senderId: currentUserId,
-            createdAt: new Date().toISOString(),
-            isRead: false,
-          }));
-          setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
-          dispatch(sendMessage({ conversationId, content: text, tempId }));
-        }} />
+        <ChatInputBar onSend={handleSend} />
       </KeyboardAvoidingView>
+
+      {/* Offer Modal */}
+      <Modal
+        visible={offerModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setOfferModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setOfferModalVisible(false)}
+        />
+        <View style={styles.modalSheet}>
+          <View style={styles.modalHandle} />
+          <Text style={styles.modalTitle}>Make an Offer</Text>
+          <Text style={styles.modalSubtitle}>Enter the amount you'd like to offer in RWF</Text>
+          <View style={styles.inputRow}>
+            <Text style={styles.currency}>RWF</Text>
+            <TextInput
+              style={styles.input}
+              value={offerAmount}
+              onChangeText={setOfferAmount}
+              placeholder="0"
+              placeholderTextColor="#94a3b8"
+              keyboardType="numeric"
+              autoFocus
+            />
+          </View>
+          <TouchableOpacity style={styles.sendBtn} onPress={handleSendOffer}>
+            <Text style={styles.sendBtnText}>Send Offer</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.cancelBtn} onPress={() => setOfferModalVisible(false)}>
+            <Text style={styles.cancelBtnText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
+  modalSheet: {
+    backgroundColor: "white",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 12,
+    paddingBottom: 40,
+    paddingHorizontal: 24,
+  },
+  modalHandle: {
+    width: 40, height: 4, borderRadius: 2,
+    backgroundColor: "#cbd5e1", alignSelf: "center", marginBottom: 20,
+  },
+  modalTitle: { fontSize: 20, fontWeight: "700", color: "#0f172a", marginBottom: 6 },
+  modalSubtitle: { fontSize: 14, color: "#64748b", marginBottom: 24 },
+  inputRow: {
+    flexDirection: "row", alignItems: "center",
+    borderWidth: 1, borderColor: "#e2e8f0", borderRadius: 16,
+    paddingHorizontal: 16, height: 58, marginBottom: 16,
+  },
+  currency: { fontSize: 16, fontWeight: "700", color: "#1C74E9", marginRight: 8 },
+  input: { flex: 1, fontSize: 20, fontWeight: "600", color: "#0f172a" },
+  sendBtn: {
+    backgroundColor: "#1C74E9", borderRadius: 16,
+    height: 54, alignItems: "center", justifyContent: "center", marginBottom: 12,
+  },
+  sendBtnText: { color: "white", fontSize: 16, fontWeight: "700" },
+  cancelBtn: { alignItems: "center", paddingVertical: 8 },
+  cancelBtnText: { fontSize: 15, color: "#94a3b8", fontWeight: "500" },
+});

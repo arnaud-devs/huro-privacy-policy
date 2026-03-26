@@ -36,6 +36,9 @@ export interface ApiMessage {
   senderId: string;
   createdAt: string;
   isRead?: boolean;
+  isOffer?: boolean;
+  offerAmount?: number | null;
+  offerAction?: 'PENDING' | 'ACCEPTED' | 'REJECTED' | null;
   sender?: { id: string; fullName?: string; avatarUrl?: string };
 }
 
@@ -149,14 +152,21 @@ export const fetchMessages = createAsyncThunk<
 
 export const sendMessage = createAsyncThunk<
   ApiMessage,
-  { conversationId: string; content: string; tempId: string },
+  { conversationId: string; content: string; tempId: string; isOffer?: boolean; offerAmount?: number },
   { state: { user: { tokens: { accessToken: string } | null; user?: { id: string } | null } }; rejectValue: string }
 >(
   'messaging/sendMessage',
-  async ({ conversationId, content }, { getState, rejectWithValue }) => {
+  async ({ conversationId, content, isOffer, offerAmount }, { getState, rejectWithValue }) => {
     try {
       const accessToken = getState().user.tokens?.accessToken;
       if (!accessToken) return rejectWithValue('Not authenticated');
+
+      const body: Record<string, any> = { content };
+      if (isOffer) {
+        body.isOffer = true;
+        body.offerAmount = offerAmount;
+        body.offerAction = 'PENDING';
+      }
 
       const response = await fetch(`${API_BASE_URL}/messaging/conversations/${conversationId}/messages`, {
         method: 'POST',
@@ -164,12 +174,68 @@ export const sendMessage = createAsyncThunk<
           Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify(body),
       });
 
       const data = await response.json();
       if (!response.ok) return rejectWithValue(data.error?.message ?? data.message ?? 'Failed to send message');
       return (data.data?.message ?? data.data) as ApiMessage;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Network error');
+    }
+  }
+);
+
+export const respondToOffer = createAsyncThunk<
+  ApiMessage,
+  { conversationId: string; messageId: string; action: 'ACCEPTED' | 'REJECTED' },
+  { state: { user: { tokens: { accessToken: string } | null } }; rejectValue: string }
+>(
+  'messaging/respondToOffer',
+  async ({ conversationId, messageId, action }, { getState, rejectWithValue }) => {
+    try {
+      const accessToken = getState().user.tokens?.accessToken;
+      if (!accessToken) return rejectWithValue('Not authenticated');
+
+      const response = await fetch(
+        `${API_BASE_URL}/messaging/conversations/${conversationId}/messages/${messageId}/offer`,
+        {
+          method: 'PATCH',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ offerAction: action }),
+        }
+      );
+
+      const data = await response.json();
+      if (!response.ok) return rejectWithValue(data.error?.message ?? data.message ?? 'Failed to respond to offer');
+      return (data.data?.message ?? data.data) as ApiMessage;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Network error');
+    }
+  }
+);
+
+export const markConversationRead = createAsyncThunk<
+  void,
+  { conversationId: string },
+  { state: { user: { tokens: { accessToken: string } | null } }; rejectValue: string }
+>(
+  'messaging/markConversationRead',
+  async ({ conversationId }, { getState, rejectWithValue }) => {
+    try {
+      const accessToken = getState().user.tokens?.accessToken;
+      if (!accessToken) return rejectWithValue('Not authenticated');
+
+      const response = await fetch(
+        `${API_BASE_URL}/messaging/conversations/${conversationId}/read`,
+        { method: 'PATCH', headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+
+      const data = await response.json();
+      if (!response.ok) return rejectWithValue(data.error?.message ?? data.message ?? 'Failed to mark as read');
     } catch (error: any) {
       return rejectWithValue(error.message || 'Network error');
     }
@@ -252,6 +318,10 @@ const messagingSlice = createSlice({
         const idx = state.messages.findIndex((m) => m.id === tempId);
         if (idx !== -1) state.messages[idx] = action.payload;
         else state.messages.push(action.payload);
+      })
+      .addCase(respondToOffer.fulfilled, (state, action) => {
+        const idx = state.messages.findIndex((m) => m.id === action.payload.id);
+        if (idx !== -1) state.messages[idx] = action.payload;
       })
       .addCase(startConversation.pending, (state) => {
         state.isStarting = true;
