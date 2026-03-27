@@ -33,6 +33,7 @@ function statusLabel(status: OrderStatus): string {
     READY_FOR_PICKUP: "Ready for Pickup",
     PICKED_UP: "Picked Up",
     IN_DELIVERY: "In Delivery",
+    RIDER_ASSIGNED: "Rider Assigned",
     DELIVERED: "Delivered",
     CANCELLED: "Cancelled",
     EXPIRED: "Expired",
