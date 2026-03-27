@@ -12,6 +12,7 @@ export interface AppNotification {
   isRead: boolean;
   readAt: string | null;
   createdAt: string;
+  live?: boolean; // true only for socket-received notifications
 }
 
 interface NotificationsState {
@@ -126,7 +127,7 @@ const notificationsSlice = createSlice({
   reducers: {
     prependNotification(state, action: PayloadAction<AppNotification>) {
       if (!Array.isArray(state.items)) state.items = [];
-      state.items.unshift(action.payload);
+      state.items.unshift({ ...action.payload, live: true });
       state.unreadCount += 1;
       state.total += 1;
     },

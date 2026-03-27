@@ -23,7 +23,8 @@ export default function RootLayout() {
         persistor={persistor}
       >
         <AppManager />
-        <Stack initialRouteName="(auth)">
+        <Stack initialRouteName="index">
+          <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="(rider)" options={{ headerShown: false }} />
@@ -40,7 +41,7 @@ export default function RootLayout() {
           <Stack.Screen name="modal" options={{ presentation: "modal", title: "Modal" }} />
         </Stack>
         <NotificationBanner />
-        <StatusBar style="auto" />
+        <StatusBar style="dark" backgroundColor="transparent" translucent />
       </PersistGate>
     </Provider>
   );

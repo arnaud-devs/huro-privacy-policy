@@ -32,7 +32,7 @@ export default function NotificationBanner() {
 
   useEffect(() => {
     const newest = items[0];
-    if (!newest || newest.isRead) return;
+    if (!newest || !newest.live) return;
     if (newest.id === lastIdRef.current) return;
     lastIdRef.current = newest.id;
     setCurrent(newest);
