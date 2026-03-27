@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import CartIconButton from "@/components/common/CartIconButton";
+import NotificationIconButton from "@/components/common/NotificationIconButton";
 import ConversationItem, { Conversation } from "@/components/messages/ConversationItem";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchConversations, ApiConversation } from "@/store/slices/messagingSlice";
@@ -65,10 +66,7 @@ export default function MessagesScreen() {
             <Ionicons name="search-outline" size={22} color="#0f172a" />
           </TouchableOpacity>
           <CartIconButton />
-          <TouchableOpacity onPress={() => dispatch(fetchConversations({ limit: 20 }))} style={{ position: "relative" }}>
-            <Ionicons name="notifications-outline" size={22} color="#0F172A" />
-            {mapped.some((c) => c.unread) && <View style={styles.dotBadge} />}
-          </TouchableOpacity>
+          <NotificationIconButton />
         </View>
       </View>
 

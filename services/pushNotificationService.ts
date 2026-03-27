@@ -1,15 +1,8 @@
-import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { API_BASE_URL } from '@/store/config';
 
 export async function registerForPushNotifications(accessToken: string): Promise<string | null> {
-  // Push notifications only work on real devices
-  if (!Device.isDevice) {
-    console.log('[Push] Skipping - not a real device');
-    return null;
-  }
-
   // Set up Android notification channel
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
