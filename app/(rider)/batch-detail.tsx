@@ -76,7 +76,7 @@ export default function BatchDetailScreen() {
 
         {isSoloRider ? (
           <SoloOrdersSection
-            myClaimedOrders={myClaimedOrders}
+            myClaimedOrders={[...myClaimedOrders, ...availableOrders]}
             totalItems={totalItems}
             onOrderPress={handleOrderPress}
           />

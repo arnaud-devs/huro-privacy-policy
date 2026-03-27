@@ -1,10 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Animated, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppSelector } from "@/store/hooks";
 import { AppNotification } from "@/store/slices/notificationsSlice";
+import { navigateFromNotification } from "@/components/common/AppManager";
 
 const BANNER_DURATION = 4000;
 
@@ -20,22 +20,6 @@ function getNotificationStyle(type: string): { icon: any; color: string; bg: str
   return { icon: "notifications", color: "#1C74E9", bg: "#eff6ff" };
 }
 
-function navigateFromNotification(entityType: string | null, entityId: string | null) {
-  if (!entityType || !entityId) return;
-  switch (entityType) {
-    case "conversation":
-      router.push({ pathname: "/chat", params: { conversationId: entityId } });
-      break;
-    case "order":
-      router.push("/(tabs)/orders");
-      break;
-    case "listing":
-      router.push({ pathname: "/product-details", params: { id: entityId } });
-      break;
-    default:
-      router.push("/notifications");
-  }
-}
 
 export default function NotificationBanner() {
   const insets = useSafeAreaInsets();
@@ -89,7 +73,7 @@ export default function NotificationBanner() {
       }}
     >
       <TouchableOpacity
-        onPress={() => { hideBanner(); navigateFromNotification(current.entityType, current.entityId); }}
+        onPress={() => { hideBanner(); navigateFromNotification({ entityType: current.entityType ?? undefined, entityId: current.entityId ?? undefined }); }}
         activeOpacity={0.97}
         style={{ backgroundColor: "#ffffff", borderRadius: 18, overflow: "hidden", borderWidth: 1, borderColor: "#f1f5f9" }}
       >

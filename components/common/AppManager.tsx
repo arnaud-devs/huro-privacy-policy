@@ -1,7 +1,7 @@
 import { router } from "expo-router";
 import { useEffect } from "react";
 import { useSelector } from "react-redux";
-import { RootState } from "@/store/store";
+import { RootState, store } from "@/store/store";
 import { useAppDispatch } from "@/store/hooks";
 import { connectSocket, disconnectSocket } from "@/services/socketService";
 import { fetchNotifications } from "@/store/slices/notificationsSlice";
@@ -18,14 +18,25 @@ function isTokenExpired(token: string): boolean {
   }
 }
 
-function navigateFromNotification(data: { entityType?: string; entityId?: string }) {
+export function navigateFromNotification(data: { entityType?: string; entityId?: string }) {
   if (!data?.entityType || !data?.entityId) return;
+
+  const role = store.getState().user.user?.role;
+  const isRider = role === 'RIDER';
+
   switch (data.entityType) {
     case "conversation":
       router.push({ pathname: "/chat", params: { conversationId: data.entityId } });
       break;
     case "order":
-      router.push("/(tabs)/orders");
+      if (isRider) {
+        router.push({ pathname: "/(rider)/order-detail", params: { orderId: data.entityId } });
+      } else {
+        router.push("/(tabs)/orders");
+      }
+      break;
+    case "batch":
+      router.push({ pathname: "/(rider)/batch-detail", params: { batchId: data.entityId } });
       break;
     case "listing":
       router.push({ pathname: "/product-details", params: { id: data.entityId } });
