@@ -48,7 +48,16 @@
       ],
       ["@react-native-google-signin/google-signin", {
         "iosUrlScheme": "com.googleusercontent.apps.631103835596-vjmmeusmr808s60pajd7d0f5oeh32roi"
-      }]
+      }],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/HURO_ICON.png",
+          "color": "#1C74E9",
+          "androidMode": "default",
+          "androidCollapsedTitle": "%(count)s new notifications"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
