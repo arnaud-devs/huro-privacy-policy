@@ -89,7 +89,7 @@ export default function DeliveryBanner({ batch }: Props) {
       </View>
 
       <TouchableOpacity
-        className="bg-white rounded-xl h-11 flex-row justify-center items-center"
+        className="bg-white rounded-xl h-12 flex-row justify-center items-center"
         onPress={handleJoinBatch}
       >
         <Ionicons name="cart-outline" size={20} color="#1C74E9" />

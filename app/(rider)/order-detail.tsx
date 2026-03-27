@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchRiderOrderDetail, markOrderDelivered } from "@/store/slices/riderSlice";
+import { fetchRiderOrderDetail, markOrderDelivered, SAMPLE_ORDER_DETAILS } from "@/store/slices/riderSlice";
 
 function fmt(n: number) {
   return (n ?? 0).toLocaleString();
@@ -52,8 +52,13 @@ export default function RiderOrderDetailScreen() {
     }
   }
 
+  // Try sample data first if available, otherwise fetch from API
+  const sampleDetail = orderId ? SAMPLE_ORDER_DETAILS[orderId] : null;
+
   useEffect(() => {
-    if (orderId) dispatch(fetchRiderOrderDetail(orderId));
+    if (orderId && !sampleDetail) {
+      dispatch(fetchRiderOrderDetail(orderId));
+    }
   }, [orderId]);
 
   if (isLoadingOrderDetail) {
@@ -73,7 +78,10 @@ export default function RiderOrderDetailScreen() {
     );
   }
 
-  if (orderDetailError || !orderDetail) {
+  // Use sample data or API data
+  const detail = sampleDetail ?? orderDetail;
+
+  if (orderDetailError || !detail) {
     return (
       <SafeAreaView style={styles.root} edges={["top"]}>
         <View style={styles.header}>
@@ -96,8 +104,8 @@ export default function RiderOrderDetailScreen() {
     );
   }
 
-  const color = statusColor(orderDetail.status);
-  const allItems = orderDetail.orderItems ?? orderDetail.items ?? [];
+  const color = statusColor(detail.status);
+  const allItems = detail.orderItems ?? detail.items ?? [];
 
   return (
     <SafeAreaView style={styles.root} edges={["top"]}>
@@ -114,16 +122,16 @@ export default function RiderOrderDetailScreen() {
         <View style={styles.card}>
           <View style={styles.cardTopRow}>
             <View style={[styles.badge, { backgroundColor: color.bg }]}>
-              <Text style={[styles.badgeText, { color: color.text }]}>{orderDetail.status.replace(/_/g, " ")}</Text>
+              <Text style={[styles.badgeText, { color: color.text }]}>{detail.status.replace(/_/g, " ")}</Text>
             </View>
-            <Text style={styles.amount}>RWF {fmt(orderDetail.payableAmount)}</Text>
+            <Text style={styles.amount}>RWF {fmt(detail.payableAmount)}</Text>
           </View>
-          <Text style={styles.orderId}>#{orderDetail.id.slice(0, 8).toUpperCase()}</Text>
-          {orderDetail.pickupSignature && (
+          <Text style={styles.orderId}>#{detail.id.slice(0, 8).toUpperCase()}</Text>
+          {detail.pickupSignature && (
             <View style={styles.signatureWrap}>
               <Ionicons name="qr-code-outline" size={16} color="#1C74E9" />
               <Text style={styles.signatureLabel}>Pickup Code: </Text>
-              <Text style={styles.signatureCode}>{orderDetail.pickupSignature}</Text>
+              <Text style={styles.signatureCode}>{detail.pickupSignature}</Text>
             </View>
           )}
         </View>
@@ -131,11 +139,11 @@ export default function RiderOrderDetailScreen() {
         {/* Customer info */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>CUSTOMER</Text>
-          <Row label="Name" value={orderDetail.snapshotName} />
-          <Row label="Phone" value={orderDetail.snapshotPhone} />
-          <Row label="Zone" value={orderDetail.snapshotZoneName} />
-          {orderDetail.customAddress ? (
-            <Row label="Address" value={orderDetail.customAddress} />
+          <Row label="Name" value={detail.snapshotName} />
+          <Row label="Phone" value={detail.snapshotPhone} />
+          <Row label="Zone" value={detail.snapshotZoneName} />
+          {detail.customAddress ? (
+            <Row label="Address" value={detail.customAddress} />
           ) : null}
         </View>
 
@@ -158,13 +166,13 @@ export default function RiderOrderDetailScreen() {
         {/* Price breakdown */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>PAYMENT</Text>
-          <Row label="Subtotal" value={`RWF ${fmt(orderDetail.subtotal)}`} />
-          <Row label="Delivery Fee" value={`RWF ${fmt(orderDetail.deliveryFee)}`} />
+          <Row label="Subtotal" value={`RWF ${fmt(detail.subtotal)}`} />
+          <Row label="Delivery Fee" value={`RWF ${fmt(detail.deliveryFee)}`} />
           <View style={styles.divider} />
           <View style={styles.row}>
             <Text style={[styles.rowLabel, { fontWeight: "700", color: "#0f172a" }]}>Total</Text>
             <Text style={[styles.rowValue, { fontWeight: "700", color: "#1C74E9" }]}>
-              RWF {fmt(orderDetail.payableAmount)}
+              RWF {fmt(detail.payableAmount)}
             </Text>
           </View>
         </View>
@@ -172,9 +180,9 @@ export default function RiderOrderDetailScreen() {
         <View style={{ height: 16 }} />
       </ScrollView>
 
-      {orderDetail.status !== "DELIVERED" &&
-        orderDetail.status !== "CANCELLED" &&
-        orderDetail.status !== "EXPIRED" && (
+      {detail.status !== "DELIVERED" &&
+        detail.status !== "CANCELLED" &&
+        detail.status !== "EXPIRED" && (
           <View style={styles.footer}>
             <TouchableOpacity
               style={[styles.deliverBtn, isMarkingDelivered && { opacity: 0.6 }]}

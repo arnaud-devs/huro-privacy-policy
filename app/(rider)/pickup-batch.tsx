@@ -1,202 +1,128 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useRouter } from "expo-router";
 import {
-    ActivityIndicator,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { PickupProgressCard } from "@/components/rider/PickupProgressCard";
-import {
-    PickupShopSection,
-    ShopBatch,
-} from "@/components/rider/PickupShopSection";
-import { PickupStatsGrid } from "@/components/rider/PickupStatsGrid";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchBatchDetail, fetchRiderOrders } from "@/store/slices/riderSlice";
-
-function ordersToShops(orders: any[]): ShopBatch[] {
-  return orders.map((order) => {
-    const items = order.orderItems ?? order.items ?? [];
-    const orderId = order.id ?? "";
-    return {
-      name: `Order #${orderId.slice(0, 6).toUpperCase()}`,
-      orders: items.length,
-      items: items.map((item: any) => {
-        const itemId = item.id ?? "";
-        return {
-          id: itemId.slice(0, 6).toUpperCase(),
-          name: `${item.productName ?? item.name ?? "Item"}${item.quantity > 1 ? ` x${item.quantity}` : ""}`,
-          status: "not-collected" as const,
-        };
-      }),
-    };
-  });
-}
+import { PickupBottomBar } from "@/components/rider/pickup-batch/PickupBottomBar";
+import { PickupOrderCard } from "@/components/rider/pickup-batch/PickupOrderCard";
+import { PickupProgressBar } from "@/components/rider/pickup-batch/PickupProgressBar";
+import { usePickupBatch } from "@/hooks/usePickupBatch";
 
 export default function PickupBatchScreen() {
   const router = useRouter();
-  const dispatch = useAppDispatch();
-  const { batchId } = useLocalSearchParams<{ batchId: string }>();
-  const { batchDetail, isLoadingBatchDetail, orders: riderOrders, isFetchingOrders } = useAppSelector((state) => state.rider);
+  const {
+    isLoadingBatchDetail,
+    pickupOrders,
+    pickedUpOrderIds,
+    totalItems,
+    collectedItems,
+    allCollected,
+    allAlreadyPickedUp,
+    isPickingUp,
+    toggleItem,
+    handleMarkAll,
+    handleStartDelivery,
+    handleContinueToDelivery,
+  } = usePickupBatch();
 
-  useEffect(() => {
-    if (batchId) {
-      dispatch(fetchBatchDetail(batchId));
-      dispatch(fetchRiderOrders({ picked: false }));
-    }
-  }, [batchId]);
-
-  const [shops, setShops] = useState<ShopBatch[]>([]);
-
-  useEffect(() => {
-    if (riderOrders.length > 0) {
-      setShops(ordersToShops(riderOrders));
-    } else if (batchDetail?.orders) {
-      setShops(ordersToShops(batchDetail.orders));
-    }
-  }, [batchDetail]);
-
-  const totalOrders = batchDetail?.currentOrders ?? 0;
-  const pickedUp = shops.reduce((total, shop) => {
-    return total + shop.items.filter((item) => item.status === "collected").length;
-  }, 0);
-
-  const handleItemToggle = (shopName: string, itemId: string) => {
-    setShops((prevShops) =>
-      prevShops.map((shop) => {
-        if (shop.name !== shopName) return shop;
-
-        return {
-          ...shop,
-          items: shop.items.map((item) => {
-            if (item.id !== itemId) return item;
-
-            let newStatus = item.status;
-            if (item.status === "not-collected") newStatus = "pending";
-            else if (item.status === "pending") newStatus = "collected";
-            else if (item.status === "collected") newStatus = "out-of-stock";
-            else if (item.status === "out-of-stock")
-              newStatus = "not-collected";
-
-            return { ...item, status: newStatus as any };
-          }),
-        };
-      }),
+  if (isLoadingBatchDetail) {
+    return (
+      <SafeAreaView style={styles.root} edges={["top"]}>
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator size="large" color="#1C74E9" />
+          <Text style={styles.loadingText}>Loading pickup...</Text>
+        </View>
+      </SafeAreaView>
     );
-  };
+  }
 
   return (
     <SafeAreaView style={styles.root} edges={["top"]}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={22} color="#0F172A" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Pickup</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
+      <PickupProgressBar
+        collectedItems={collectedItems}
+        totalItems={totalItems}
+        allAlreadyPickedUp={allAlreadyPickedUp}
+        hasOrders={pickupOrders.length > 0}
+        onMarkAll={handleMarkAll}
+      />
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <View style={styles.headerRow}>
-          <TouchableOpacity
-            style={styles.iconButton}
-            onPress={() => router.back()}
-          >
-            <Ionicons name="arrow-back" size={22} color="#1E293B" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>
-            {batchDetail?.id ? `Batch #${batchDetail.id.slice(0, 6).toUpperCase()}` : "Pickup Batch"}
-          </Text>
-          <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="warning-outline" size={22} color="#EF4444" />
-          </TouchableOpacity>
-        </View>
-
-        {isLoadingBatchDetail || isFetchingOrders ? (
-          <View style={{ alignItems: "center", paddingVertical: 40 }}>
-            <ActivityIndicator size="large" color="#1C74E9" />
+        {pickupOrders.length === 0 ? (
+          <View style={styles.emptyWrap}>
+            <Ionicons name="bag-outline" size={40} color="#CBD5E1" />
+            <Text style={styles.emptyTitle}>No claimed orders</Text>
+            <Text style={styles.emptySubtitle}>
+              Go back to batch details to claim orders first
+            </Text>
           </View>
         ) : (
-          <>
-            <PickupStatsGrid
-              totalOrders={batchDetail?.currentOrders ?? 0}
-              ridersCount={batchDetail?.riders?.length ?? 0}
-              zoneName={batchDetail?.deliveryZone?.name ?? "—"}
+          pickupOrders.map((order) => (
+            <PickupOrderCard
+              key={order.orderId}
+              order={order}
+              isLocked={pickedUpOrderIds.includes(order.orderId)}
+              onToggleItem={toggleItem}
             />
-            <PickupProgressCard pickedUp={pickedUp} totalOrders={totalOrders} />
-          </>
+          ))
         )}
-
-        {shops.map((shop, i) => (
-          <PickupShopSection
-            key={shop.name}
-            shop={shop}
-            onItemToggle={handleItemToggle}
-            onOrderPress={() =>
-              router.push({
-                pathname: "/(rider)/order-detail",
-                params: { orderId: riderOrders[i]?.id ?? "" },
-              })
-            }
-          />
-        ))}
-
-        <TouchableOpacity
-          style={styles.startDeliveryBtn}
-          activeOpacity={0.85}
-          onPress={() => router.push("/(rider)/active-delivery")}
-        >
-          <Text style={styles.startDeliveryText}>Start Delivery</Text>
-        </TouchableOpacity>
       </ScrollView>
+
+      {pickupOrders.length > 0 && (
+        <PickupBottomBar
+          allAlreadyPickedUp={allAlreadyPickedUp}
+          allCollected={allCollected}
+          isPickingUp={isPickingUp}
+          onStartDelivery={handleStartDelivery}
+          onContinueToDelivery={handleContinueToDelivery}
+        />
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: "#F8FAFC",
-  },
-  scrollContent: {
-    paddingHorizontal: 14,
-    paddingBottom: 26,
-  },
-  headerRow: {
+  root: { flex: 1, backgroundColor: "#F8FAFC" },
+  loadingWrap: { flex: 1, justifyContent: "center", alignItems: "center" },
+  loadingText: { color: "#64748B", marginTop: 12, fontSize: 14 },
+  header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 10,
-    marginBottom: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "white",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
   },
-  iconButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  headerTitle: {
-    fontSize: 16,
-    color: "#0F172A",
-    fontWeight: "800",
-  },
-  startDeliveryBtn: {
-    height: 52,
+  backBtn: {
+    width: 40,
+    height: 40,
     borderRadius: 20,
-    backgroundColor: "#1C74E9",
-    alignItems: "center",
     justifyContent: "center",
-    marginTop: 4,
-    shadowColor: "#1C74E9",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.22,
-    shadowRadius: 10,
-    elevation: 4,
+    alignItems: "center",
   },
-  startDeliveryText: {
-    fontSize: 16,
-    color: "#FFFFFF",
-    fontWeight: "800",
-  },
+  headerTitle: { fontSize: 16, fontWeight: "800", color: "#0F172A" },
+  scrollContent: { padding: 16, paddingBottom: 100 },
+  emptyWrap: { alignItems: "center", paddingVertical: 48 },
+  emptyTitle: { fontSize: 16, fontWeight: "700", color: "#64748B", marginTop: 12 },
+  emptySubtitle: { fontSize: 13, color: "#94A3B8", marginTop: 4 },
 });

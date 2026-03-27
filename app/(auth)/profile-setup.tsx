@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import { Stack, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -17,11 +17,13 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { updateProfile } from "@/store/slices/userSlice";
+import { updateProfile, updatePhone } from "@/store/slices/userSlice";
 import { placeOrder, clearPendingOrder } from "@/store/slices/ordersSlice";
+import { startConversation } from "@/store/slices/messagingSlice";
 
 export default function ProfileSetupScreen() {
   const router = useRouter();
+  const { returnListingId } = useLocalSearchParams<{ returnListingId?: string }>();
   const dispatch = useAppDispatch();
   const { isLoading } = useAppSelector((state) => state.user);
   const pendingOrder = useAppSelector((state) => state.orders.pendingOrder);
@@ -52,26 +54,43 @@ export default function ProfileSetupScreen() {
       return;
     }
 
-    const result = await dispatch(
-      updateProfile({ fullName: fullName.trim(), phone: phone.trim(), avatarUri: avatarUri ?? undefined })
+    // Update profile (name + avatar)
+    const profileResult = await dispatch(
+      updateProfile({ fullName: fullName.trim(), avatarUri: avatarUri ?? undefined })
     );
+    if (!updateProfile.fulfilled.match(profileResult)) {
+      Alert.alert("Error", (profileResult.payload as string) || "Failed to update profile.");
+      return;
+    }
 
-    if (updateProfile.fulfilled.match(result)) {
-      if (pendingOrder) {
-        const orderResult = await dispatch(placeOrder(pendingOrder));
-        dispatch(clearPendingOrder());
-        if (placeOrder.fulfilled.match(orderResult)) {
-          router.replace("/orders/order-status");
-        } else {
-          const msg = (orderResult.payload as string) || "Failed to place order.";
-          Alert.alert("Order Failed", msg);
-          router.replace("/(tabs)");
-        }
+    // Update phone via dedicated endpoint
+    const phoneResult = await dispatch(updatePhone({ phone: phone.trim() }));
+    if (!updatePhone.fulfilled.match(phoneResult)) {
+      Alert.alert("Error", (phoneResult.payload as string) || "Failed to update phone number.");
+      return;
+    }
+
+    // Navigate based on where the user came from
+    if (returnListingId) {
+      const convResult = await dispatch(
+        startConversation({ listingId: returnListingId, message: "Hi, is this still available?" })
+      );
+      if (startConversation.fulfilled.match(convResult)) {
+        router.replace({ pathname: "/chat", params: { conversationId: convResult.payload.id } });
       } else {
+        router.replace("/(tabs)/messages");
+      }
+    } else if (pendingOrder) {
+      const orderResult = await dispatch(placeOrder(pendingOrder));
+      dispatch(clearPendingOrder());
+      if (placeOrder.fulfilled.match(orderResult)) {
+        router.replace("/orders/order-status");
+      } else {
+        Alert.alert("Order Failed", (orderResult.payload as string) || "Failed to place order.");
         router.replace("/(tabs)");
       }
     } else {
-      Alert.alert("Error", (result.payload as string) || "Failed to update profile.");
+      router.replace("/(tabs)");
     }
   }
 
@@ -93,7 +112,7 @@ export default function ProfileSetupScreen() {
               <Ionicons name="arrow-back" size={24} color="#0F172A" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Complete Profile</Text>
-            <TouchableOpacity onPress={() => router.replace("/(tabs)")} style={styles.skipBtn}>
+            <TouchableOpacity onPress={() => router.replace(returnListingId ? "/(tabs)/messages" : "/(tabs)")} style={styles.skipBtn}>
               <Text style={styles.skipText}>Skip</Text>
             </TouchableOpacity>
           </View>
@@ -172,7 +191,7 @@ export default function ProfileSetupScreen() {
             )}
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => router.replace("/(tabs)")}
+            onPress={() => router.replace(returnListingId ? "/(tabs)/messages" : "/(tabs)")}
             style={styles.skipFooterBtn}
           >
             <Text style={styles.skipFooterText}>Skip for now</Text>
