@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "HURO",
-    "slug": "Huro",
+    "slug": "huro",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/HURO_ICON.png",
@@ -20,7 +20,11 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "softwareKeyboardLayoutMode": "pan"
+      "softwareKeyboardLayoutMode": "pan",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "output": "static",
@@ -46,13 +50,32 @@
           }
         }
       ],
-      ["@react-native-google-signin/google-signin", {
-        "iosUrlScheme": "com.googleusercontent.apps.631103835596-vjmmeusmr808s60pajd7d0f5oeh32roi"
-      }]
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.631103835596-vjmmeusmr808s60pajd7d0f5oeh32roi"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/HURO_ICON.png",
+          "color": "#1C74E9",
+          "androidMode": "default",
+          "androidCollapsedTitle": "%(count)s new notifications"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "0c404cdb-8261-40b1-a05f-58c894ff48db"
+      }
+    },
+    "owner": "shemaarnaud69"
   }
 }

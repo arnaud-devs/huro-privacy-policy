@@ -6,11 +6,11 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import NotificationIconButton from "@/components/common/NotificationIconButton";
 import { BatchCard } from "@/components/rider/dashboard/BatchCard";
 import { RiderPhaseCard } from "@/components/rider/dashboard/RiderPhaseCard";
 import { RiderStatsRow } from "@/components/rider/dashboard/RiderStatsRow";
@@ -50,9 +50,7 @@ export default function RiderHomeScreen() {
             <Text style={styles.greetingName}>{firstName}</Text>
           </View>
         </View>
-        <TouchableOpacity style={styles.notifBtn}>
-          <Ionicons name="notifications-outline" size={22} color="#0f172a" />
-        </TouchableOpacity>
+        <NotificationIconButton />
       </View>
 
       <ScrollView

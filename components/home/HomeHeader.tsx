@@ -1,9 +1,9 @@
-import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { Text, TouchableOpacity, View } from "react-native";
 
 import CartIconButton from "@/components/common/CartIconButton";
+import NotificationIconButton from "@/components/common/NotificationIconButton";
 import { useAppSelector } from "@/store/hooks";
 
 export default function HomeHeader() {
@@ -43,9 +43,7 @@ export default function HomeHeader() {
       <View className="flex-row items-center gap-3">
         <CartIconButton />
 
-        <TouchableOpacity className="w-10 h-10 rounded-full bg-white justify-center items-center border border-slate-200">
-          <Ionicons name="notifications-outline" size={22} color="#0F172A" />
-        </TouchableOpacity>
+        <NotificationIconButton />
       </View>
     </View>
   );

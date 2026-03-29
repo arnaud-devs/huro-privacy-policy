@@ -14,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import ActiveOrderCard from "@/components/orders/ActiveOrderCard";
 import RecentlyDelivered from "@/components/orders/RecentlyDelivered";
 import CartIconButton from "@/components/common/CartIconButton";
+import NotificationIconButton from "@/components/common/NotificationIconButton";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchOrderById, fetchOrders, Order, OrderStatus } from "@/store/slices/ordersSlice";
 
@@ -32,6 +33,7 @@ function statusLabel(status: OrderStatus): string {
     READY_FOR_PICKUP: "Ready for Pickup",
     PICKED_UP: "Picked Up",
     IN_DELIVERY: "In Delivery",
+    RIDER_ASSIGNED: "Rider Assigned",
     DELIVERED: "Delivered",
     CANCELLED: "Cancelled",
     EXPIRED: "Expired",
@@ -111,7 +113,10 @@ export default function OrdersScreen() {
       <View className="bg-white px-4 pt-2 pb-0 border-b border-slate-100">
         <View className="flex-row items-center justify-between mb-4">
           <Text className="text-xl font-bold text-slate-900">Orders</Text>
-          <CartIconButton />
+          <View className="flex-row items-center gap-3">
+            <CartIconButton />
+            <NotificationIconButton />
+          </View>
         </View>
 
         {/* Tabs */}
