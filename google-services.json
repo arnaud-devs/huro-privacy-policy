@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "747207269235",
+    "project_id": "huzago-67afe",
+    "storage_bucket": "huzago-67afe.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:747207269235:android:926d919bb520c711844306",
+        "android_client_info": {
+          "package_name": "com.huro.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAfd2TNd1D_iwgC2swZ-kovkNssWPQHvsk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

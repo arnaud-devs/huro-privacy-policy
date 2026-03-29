@@ -1,26 +1,18 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Animated, Text, TouchableOpacity, View } from "react-native";
+import { useRef, useState } from "react";
+import { Animated, Text, TouchableOpacity, View } from "react-native";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchProducts } from "@/store/slices/productsSlice";
 import { addToCart } from "@/store/slices/cartSlice";
 
-interface Props {
-  categoryId?: string;
-}
-
-export default function ProductGrid({ categoryId }: Props) {
+export default function ProductGrid() {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { products, isLoading, error } = useAppSelector((state) => state.products);
+  const { products, error } = useAppSelector((state) => state.products);
   const [toastId, setToastId] = useState<string | null>(null);
   const toastOpacity = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    dispatch(fetchProducts({ categoryId, sortBy: "newest" }));
-  }, [dispatch, categoryId]);
 
   function showToast(productId: string) {
     setToastId(productId);
@@ -36,14 +28,6 @@ export default function ProductGrid({ categoryId }: Props) {
     if (addToCart.fulfilled.match(result)) {
       showToast(productId);
     }
-  }
-
-  if (isLoading) {
-    return (
-      <View className="py-10 items-center">
-        <ActivityIndicator size="small" color="#1C74E9" />
-      </View>
-    );
   }
 
   if (error) {

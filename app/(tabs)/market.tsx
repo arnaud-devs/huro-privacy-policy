@@ -7,18 +7,43 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import MarketCategories from "@/components/market/MarketCategories";
 import MarketHeader from "@/components/market/MarketHeader";
 import MarketSearchBar from "@/components/market/MarketSearchBar";
+import MarketSkeleton, { UsedMarketSkeleton } from "@/components/market/MarketSkeleton";
 import MarketTabs from "@/components/market/MarketTabs";
 import ProductGrid from "@/components/market/ProductGrid";
 import UsedMarketCategories from "@/components/market/UsedMarketCategories";
 import UsedMarketListings from "@/components/market/UsedMarketListings";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchCategories } from "@/store/slices/categoriesSlice";
+import { fetchProducts } from "@/store/slices/productsSlice";
+import { fetchListings } from "@/store/slices/marketplaceSlice";
 
 export default function MarketScreen() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const { tab } = useLocalSearchParams<{ tab?: string }>();
   const [activeTab, setActiveTab] = useState<"Campus Store" | "Used Market">(
     tab === "Used Market" ? "Used Market" : "Campus Store",
   );
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>(undefined);
+  const isCategoriesLoading = useAppSelector((state) => state.categories.isLoading);
+  const isProductsLoading = useAppSelector((state) => state.products.isLoading);
+  const isListingsLoading = useAppSelector((state) => state.marketplace.isFetching);
+  const hasCategories = useAppSelector((state) => state.categories.categories.length > 0);
+  const hasProducts = useAppSelector((state) => state.products.products.length > 0);
+  const hasListings = useAppSelector((state) => state.marketplace.listings.length > 0);
+  const isCampusLoading = (isCategoriesLoading && !hasCategories) || (isProductsLoading && !hasProducts);
+  const isUsedLoading = isListingsLoading && !hasListings;
+
+  // All fetches live here — child components are display-only, no re-fetch on remount
+  useEffect(() => {
+    dispatch(fetchCategories());
+    dispatch(fetchProducts({ sortBy: "newest" }));
+    dispatch(fetchListings({ limit: 20 }));
+  }, []);
+
+  useEffect(() => {
+    dispatch(fetchProducts({ categoryId: selectedCategoryId, sortBy: "newest" }));
+  }, [selectedCategoryId]);
 
   useEffect(() => {
     if (tab === "Used Market" || tab === "Campus Store") {
@@ -34,18 +59,22 @@ export default function MarketScreen() {
         <MarketTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
         {activeTab === "Campus Store" ? (
-          <>
-            <MarketCategories
-              selectedCategoryId={selectedCategoryId}
-              onCategorySelect={setSelectedCategoryId}
-            />
-            <ProductGrid categoryId={selectedCategoryId} />
-          </>
+          isCampusLoading ? <MarketSkeleton /> : (
+            <>
+              <MarketCategories
+                selectedCategoryId={selectedCategoryId}
+                onCategorySelect={setSelectedCategoryId}
+              />
+              <ProductGrid />
+            </>
+          )
         ) : (
-          <>
-            <UsedMarketCategories />
-            <UsedMarketListings />
-          </>
+          isUsedLoading ? <UsedMarketSkeleton /> : (
+            <>
+              <UsedMarketCategories />
+              <UsedMarketListings />
+            </>
+          )
         )}
 
         <View className="h-6" />

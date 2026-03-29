@@ -1,5 +1,6 @@
-import { useEffect } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+
+
+import { View, Text, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -9,25 +10,13 @@ import { fetchListings, Listing } from '@/store/slices/marketplaceSlice';
 export default function UsedMarketListings() {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { listings, isFetching, fetchError } = useAppSelector((state) => state.marketplace);
-
-  useEffect(() => {
-    dispatch(fetchListings({ limit: 20 }));
-  }, [dispatch]);
+  const { listings, fetchError } = useAppSelector((state) => state.marketplace);
 
   const getSellerName = (listing: Listing) => listing.seller?.fullName ?? 'Unknown';
 
   const getImageUri = (listing: Listing): string | null => listing.images?.[0] ?? null;
 
   const formatPrice = (price: number) => `${(price / 1000).toFixed(0)}k RWF`;
-
-  if (isFetching) {
-    return (
-      <View className="flex-1 items-center justify-center py-16">
-        <ActivityIndicator size="large" color="#1C74E9" />
-      </View>
-    );
-  }
 
   if (fetchError) {
     return (

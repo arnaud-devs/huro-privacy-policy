@@ -2,7 +2,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   StyleSheet,
   Text,
@@ -14,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import CartIconButton from "@/components/common/CartIconButton";
 import NotificationIconButton from "@/components/common/NotificationIconButton";
 import ConversationItem, { Conversation } from "@/components/messages/ConversationItem";
+import MessagesSkeleton from "@/components/messages/MessagesSkeleton";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchConversations, ApiConversation } from "@/store/slices/messagingSlice";
 
@@ -89,10 +89,8 @@ export default function MessagesScreen() {
         ))}
       </View>
 
-      {isFetching ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#1C74E9" />
-        </View>
+      {isFetching && conversations.length === 0 ? (
+        <MessagesSkeleton />
       ) : fetchError ? (
         <View className="flex-1 items-center justify-center px-4">
           <Text className="text-slate-500 text-sm mb-4 text-center">{fetchError}</Text>

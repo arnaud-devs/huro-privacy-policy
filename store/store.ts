@@ -15,6 +15,12 @@ import marketplaceReducer from './slices/marketplaceSlice';
 import messagingReducer from './slices/messagingSlice';
 import notificationsReducer from './slices/notificationsSlice';
 
+const userPersistConfig = {
+  key: 'user',
+  storage: AsyncStorage,
+  whitelist: ['tokens', 'user'],
+};
+
 // Only persist the fields needed to resume a delivery session
 const riderPersistConfig = {
   key: 'rider',
@@ -22,11 +28,12 @@ const riderPersistConfig = {
   whitelist: ['deliveryPhase', 'claimedOrderIds', 'currentBatchId', 'deliveredOrderIds', 'pickedUpOrderIds', 'orderDetailsMap'],
 };
 
+const persistedUserReducer = persistReducer(userPersistConfig, userReducer);
 const persistedRiderReducer = persistReducer(riderPersistConfig, riderReducer);
 
 export const store = configureStore({
   reducer: {
-    user: userReducer,
+    user: persistedUserReducer,
     categories: categoriesReducer,
     products: productsReducer,
     cart: cartReducer,

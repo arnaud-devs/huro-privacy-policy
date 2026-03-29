@@ -1,8 +1,6 @@
-import { useEffect } from 'react';
-import { View, Text, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { fetchCategories } from '@/store/slices/categoriesSlice';
+import { useAppSelector } from '@/store/hooks';
 
 interface Props {
   selectedCategoryId?: string;
@@ -10,20 +8,7 @@ interface Props {
 }
 
 export default function MarketCategories({ selectedCategoryId, onCategorySelect }: Props) {
-  const dispatch = useAppDispatch();
-  const { categories, isLoading, error } = useAppSelector((state) => state.categories);
-
-  useEffect(() => {
-    dispatch(fetchCategories());
-  }, [dispatch]);
-
-  if (isLoading) {
-    return (
-      <View className="py-8 items-center">
-        <ActivityIndicator size="small" color="#475569" />
-      </View>
-    );
-  }
+  const { categories, error } = useAppSelector((state) => state.categories);
 
   if (error) {
     return (
