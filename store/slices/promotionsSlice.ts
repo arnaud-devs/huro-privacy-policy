@@ -68,6 +68,8 @@ export const fetchActivePromotions = createAsyncThunk<
       // Public endpoint — no auth required
       const response = await fetch(`${API_BASE_URL}/promotions/active`);
       const data = await response.json();
+      console.log('[promotions] status:', response.status);
+      console.log('[promotions] response:', JSON.stringify(data, null, 2));
       if (!response.ok) return rejectWithValue(data.message || 'Failed to fetch promotions');
       return (data.data ?? []) as Promotion[];
     } catch (error: any) {
