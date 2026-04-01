@@ -48,10 +48,11 @@ export function navigateFromNotification(data: { entityType?: string; entityId?:
 
 function setupFCMTapHandlers() {
   try {
-    const messaging = require('@react-native-firebase/messaging').default;
+    const { getMessaging, getInitialNotification, onNotificationOpenedApp } = require('@react-native-firebase/messaging');
+    const messagingInstance = getMessaging();
 
     // App opened from QUIT state by tapping a notification
-    messaging().getInitialNotification().then((remoteMessage: any) => {
+    getInitialNotification(messagingInstance).then((remoteMessage: any) => {
       if (remoteMessage?.data) {
         console.log('[FCM] Opened from quit state:', remoteMessage.data);
         navigateFromNotification(remoteMessage.data);
@@ -59,7 +60,7 @@ function setupFCMTapHandlers() {
     });
 
     // App opened from BACKGROUND state by tapping a notification
-    messaging().onNotificationOpenedApp((remoteMessage: any) => {
+    onNotificationOpenedApp(messagingInstance, (remoteMessage: any) => {
       if (remoteMessage?.data) {
         console.log('[FCM] Opened from background:', remoteMessage.data);
         navigateFromNotification(remoteMessage.data);

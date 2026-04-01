@@ -1,17 +1,15 @@
 import { Platform } from 'react-native';
 import { API_BASE_URL } from '@/store/config';
+import { store } from '@/store/store';
+import { prependNotification } from '@/store/slices/notificationsSlice';
 
-// Lazy-load Firebase Messaging (native module — not available in Expo Go)
-let _messaging: any = null;
-function getMessaging() {
-  if (!_messaging) {
-    try {
-      _messaging = require('@react-native-firebase/messaging').default;
-    } catch {
-      return null;
-    }
+// Lazy-load Firebase Messaging v22 modular API
+function getFirebaseMessaging() {
+  try {
+    return require('@react-native-firebase/messaging');
+  } catch {
+    return null;
   }
-  return _messaging;
 }
 
 // Stores the current FCM token so logout can delete it
@@ -23,19 +21,21 @@ export function getCurrentFCMToken(): string | null {
 // ─── Register token ────────────────────────────────────────────────────────
 
 export async function registerFCMToken(accessToken: string): Promise<void> {
-  const messaging = getMessaging();
-  if (!messaging) {
+  const firebase = getFirebaseMessaging();
+  if (!firebase) {
     console.log('[FCM] Firebase not available (Expo Go or native module missing)');
     return;
   }
 
   try {
+    const { getMessaging, getToken, onTokenRefresh, onMessage, setBackgroundMessageHandler } = firebase;
+    const messagingInstance = getMessaging();
+
     // iOS: request permission
     if (Platform.OS === 'ios') {
-      const authStatus = await messaging().requestPermission();
-      const granted =
-        authStatus === 1 /* AUTHORIZED */ ||
-        authStatus === 2 /* PROVISIONAL */;
+      const { requestPermission } = firebase;
+      const authStatus = await requestPermission(messagingInstance);
+      const granted = authStatus === 1 || authStatus === 2;
       if (!granted) {
         console.log('[FCM] iOS permission denied');
         return;
@@ -55,7 +55,7 @@ export async function registerFCMToken(accessToken: string): Promise<void> {
     }
 
     // Get the FCM token
-    const token = await messaging().getToken();
+    const token = await getToken(messagingInstance);
     console.log('[FCM] Token:', token);
     _currentFCMToken = token;
 
@@ -63,14 +63,35 @@ export async function registerFCMToken(accessToken: string): Promise<void> {
     await postTokenToBackend(token, accessToken);
 
     // Re-register if Firebase rotates the token
-    messaging().onTokenRefresh(async (newToken: string) => {
+    onTokenRefresh(messagingInstance, async (newToken: string) => {
       console.log('[FCM] Token refreshed');
       _currentFCMToken = newToken;
       await postTokenToBackend(newToken, accessToken);
     });
 
-    // Background message handler — system tray handles display, we just need the hook registered
-    messaging().setBackgroundMessageHandler(async () => {});
+    // Foreground messages — Firebase does NOT auto-show these, handle manually
+    onMessage(messagingInstance, async (remoteMessage: any) => {
+      console.log('[FCM] Foreground message:', JSON.stringify(remoteMessage));
+      const title = remoteMessage.notification?.title ?? remoteMessage.data?.title ?? 'HURO';
+      const body = remoteMessage.notification?.body ?? remoteMessage.data?.body ?? '';
+
+      // Dispatch to Redux so the in-app banner fires
+      store.dispatch(prependNotification({
+        id: `fcm-${Date.now()}`,
+        userId: '',
+        type: remoteMessage.data?.type ?? 'SYSTEM',
+        title,
+        body,
+        entityType: remoteMessage.data?.entityType ?? null,
+        entityId: remoteMessage.data?.entityId ?? null,
+        isRead: false,
+        readAt: null,
+        createdAt: new Date().toISOString(),
+      }));
+    });
+
+    // Background message handler — system tray handles display automatically
+    setBackgroundMessageHandler(messagingInstance, async () => {});
   } catch (error: any) {
     console.log('[FCM] Registration error:', error.message);
   }
@@ -90,7 +111,7 @@ async function postTokenToBackend(fcmToken: string, accessToken: string): Promis
       }),
     });
     const data = await response.json();
-    console.log('[FCM] Backend registration:', data.message);
+    console.log('[FCM] Backend registration status:', response.status, data.message);
   } catch (error: any) {
     console.log('[FCM] Failed to register with backend:', error.message);
   }
@@ -117,4 +138,3 @@ export async function removeFCMToken(accessToken: string): Promise<void> {
   }
 }
 
-// Background message handler is registered inside registerFCMToken after Firebase is confirmed available.
