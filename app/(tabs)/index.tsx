@@ -11,6 +11,7 @@ import SearchBar from "@/components/home/SearchBar";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchOpenBatches } from "@/store/slices/batchesSlice";
 import { fetchOrders } from "@/store/slices/ordersSlice";
+import { fetchActivePromotions } from "@/store/slices/promotionsSlice";
 
 export default function HomeScreen() {
   const dispatch = useAppDispatch();
@@ -19,6 +20,7 @@ export default function HomeScreen() {
   useEffect(() => {
     dispatch(fetchOpenBatches());
     dispatch(fetchOrders());
+    dispatch(fetchActivePromotions());
   }, [dispatch]);
 
   return (

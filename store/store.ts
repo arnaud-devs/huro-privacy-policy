@@ -14,6 +14,7 @@ import userReducer from './slices/userSlice';
 import marketplaceReducer from './slices/marketplaceSlice';
 import messagingReducer from './slices/messagingSlice';
 import notificationsReducer from './slices/notificationsSlice';
+import promotionsReducer from './slices/promotionsSlice';
 
 const userPersistConfig = {
   key: 'user',
@@ -45,6 +46,7 @@ export const store = configureStore({
     marketplace: marketplaceReducer,
     messaging: messagingReducer,
     notifications: notificationsReducer,
+    promotions: promotionsReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
